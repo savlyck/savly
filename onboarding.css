@@ -1,0 +1,142 @@
+/* Six-step setup, following the supplied warm white / navy references. */
+:root{--setup-bg:#f6f4ef;--setup-blue:#0a2167;--setup-line:#e3e0da}
+nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+#savlyOnboarding{background:var(--setup-bg)!important}
+#savlyOnboarding .savly-ob-shell{max-width:480px!important;width:100%!important;padding:0!important;min-height:100dvh!important;background:var(--setup-bg)!important;display:flex;flex-direction:column;margin:0 auto!important;overflow:visible!important}
+#savlyOnboarding .setup-top{display:flex;align-items:center;gap:16px;padding:32px 24px 22px;flex:none}
+#savlyOnboarding .setup-back{width:20px;min-height:28px;border:0;background:none;font-size:27px;color:#77736b;cursor:pointer}
+#savlyOnboarding .setup-progress{display:flex;gap:6px;flex:1}
+#savlyOnboarding .setup-progress i{height:6px;flex:1;border-radius:8px;background:var(--setup-line)}
+#savlyOnboarding .setup-progress i.active{background:var(--setup-blue)}
+#savlyOnboarding .setup-progress i.current{flex:2}
+#savlyOnboarding .setup-step{flex:1;padding:24px;display:flex;flex-direction:column;min-height:calc(100dvh - 100px)}
+#savlyOnboarding .setup-step[hidden]{display:none!important}
+#savlyOnboarding .setup-icon{width:49px;height:49px;border-radius:17px;background:#e0e0e6;color:var(--setup-blue);display:grid;place-items:center;margin-bottom:18px}
+.setup-icon svg,.hh-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#savlyOnboarding h2{font-size:25px!important;font-weight:850;letter-spacing:-.8px;color:#13141a;margin:0 0 6px!important;line-height:1.2}
+#savlyOnboarding p{font-size:13px;line-height:1.65;color:#77746e;margin:0 0 23px}
+#savlyOnboarding .setup-center{justify-content:center;text-align:center;flex:1;padding:35px 0}
+#savlyOnboarding .setup-center h2{font-size:30px!important;margin-bottom:14px!important}
+#savlyOnboarding .setup-center p{max-width:320px;margin:0 auto 25px;line-height:1.8}
+#savlyOnboarding .setup-center .setup-icon{width:80px;height:80px;border-radius:25px;margin:0 auto 28px;background:var(--setup-blue);color:white}
+#savlyOnboarding .setup-center .setup-icon svg{width:37px;height:37px}
+#savlyOnboarding .setup-center .setup-icon.success{background:#dbfce8;color:#13a454}
+#savlyOnboarding .setup-footer{margin-top:auto;padding:34px 0 8px;background:var(--setup-bg);flex:none}
+#savlyOnboarding .setup-next,.hh-primary{width:100%;min-height:55px;border:0;border-radius:17px;background:var(--setup-blue);color:white;font:inherit;font-weight:750;font-size:14px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:15px}
+#savlyOnboarding .setup-next:disabled,.hh-primary:disabled{opacity:.5;cursor:wait}
+#savlyOnboarding .setup-label{font-size:11px;font-weight:800;color:#7c786f;letter-spacing:.4px;margin:22px 0 10px;text-transform:uppercase;display:block}
+#savlyOnboarding .ob-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#savlyOnboarding .ob-card{position:relative;min-height:56px;background:white!important;border:2px solid var(--setup-line)!important;border-radius:17px!important;text-align:left;padding:14px!important;font:inherit;font-size:12px;font-weight:750;cursor:pointer;color:#18191f}
+#savlyOnboarding .ob-card.selected{background:#eaeaec!important;border-color:var(--setup-blue)!important}
+#savlyOnboarding .ob-card.selected:after{content:'✓';position:absolute;right:14px;color:var(--setup-blue)}
+#savlyOnboarding .ob-card b{padding-right:17px;font-size:12px}
+#savlyOnboarding input[type=text],#savlyOnboarding input[type=number],#savlyOnboarding select,.hh-panel input{font:inherit;color:#111827;background:white;border:1px solid var(--setup-line);border-radius:14px;min-height:48px;width:100%;padding:12px 15px;font-size:13px}
+#savlyOnboarding input:focus-visible,.hh-panel input:focus-visible{outline:2px solid var(--setup-blue);outline-offset:2px}
+#savlyOnboarding .setup-chips{display:flex;flex-wrap:wrap;gap:8px}
+#savlyOnboarding .setup-chips button{background:#f0eeeb;border:1px solid transparent;border-radius:12px;padding:9px 13px;min-height:39px;font:inherit;font-size:12px;font-weight:650;color:#77746e;cursor:pointer}
+#savlyOnboarding .setup-chips button.selected{color:var(--setup-blue);background:#e5e8f0;border-color:var(--setup-blue)}
+#savlyOnboarding details{margin:12px 0}#savlyOnboarding summary{font-size:12px;color:var(--setup-blue);padding:10px 0;cursor:pointer}
+#savlyOnboarding .custom-choice{display:flex;gap:8px;margin-top:12px}#savlyOnboarding .custom-choice input{min-width:0}
+#savlyOnboarding .custom-choice button{border:0;border-radius:12px;padding:0 14px;background:#e3e6ef;color:var(--setup-blue);font-weight:700}
+#savlyOnboarding .setup-card{background:white;border:1px solid var(--setup-line);border-radius:18px;padding:17px;margin:0 0 16px;text-align:left}
+#savlyOnboarding .setup-card label{font-size:12px;color:#77746e;display:block;margin:0 0 16px;font-weight:600}
+#savlyOnboarding input[type=range]{width:100%;accent-color:var(--setup-blue)}
+#savlyOnboarding .budget-value{display:flex;align-items:center;justify-content:flex-end;gap:6px;color:#14151b;font-size:22px;font-weight:850;margin-top:8px}
+#savlyOnboarding .budget-value input{width:105px;min-height:35px;border:0;padding:0;text-align:right;font-size:24px;font-weight:850}
+#savlyOnboarding .setup-count{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+#savlyOnboarding .setup-count button{min-height:55px;border:0;border-radius:14px;background:#f0eeeb;font:inherit;font-weight:800;color:#79766f;cursor:pointer}
+#savlyOnboarding .setup-count button.selected{background:var(--setup-blue);color:white}
+#savlyOnboarding .setup-summary{max-width:100%;margin-top:30px}
+#savlyOnboarding .setup-summary>div{display:flex;justify-content:space-between;gap:20px;margin:12px 0;font-size:12px;color:#77746e}
+#savlyOnboarding .setup-summary b{max-width:65%;color:#111827;text-align:right;overflow-wrap:anywhere}
+#savlyOnboarding .setup-note{font-size:11px;text-align:center;margin-top:18px}
+.hh-panel{background:white;border:1px solid var(--setup-line);border-radius:18px;padding:18px;margin:12px 0;color:#111827}
+.hh-panel h3{font-size:15px;line-height:1.5;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.hh-panel p,.hh-panel label{font-size:12px;color:#79766f;line-height:1.6;margin:10px 0;display:block}
+.hh-members{display:flex;flex-wrap:wrap;gap:6px}.hh-member{display:inline-block;background:#f2f0ed;border-radius:14px;padding:6px 10px;font-size:11px}
+.hh-code{background:#f3f1ee;border-radius:14px;padding:13px;margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hh-code small{display:block;font-size:11px;color:#77746e;margin-bottom:5px}.hh-code strong{letter-spacing:2px;font-size:21px;font-weight:850}
+.hh-code button{border:0;background:transparent;color:var(--setup-blue);padding:10px;cursor:pointer}
+.hh-row{display:flex;gap:8px}.hh-row .hh-primary{flex:1;min-height:44px;border-radius:12px;padding:10px}
+.hh-secondary{width:100%;background:white;color:var(--setup-blue);border:2px solid var(--setup-line);border-radius:17px;min-height:55px;font:inherit;font-weight:750;font-size:13px;padding:13px;text-align:left;cursor:pointer;margin-top:10px;display:flex;align-items:center;gap:10px}
+.hh-danger{border:0;background:#f6f1ef;color:#bc362d;border-radius:12px;padding:12px;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.hh-link{border:0;background:none;color:#77746e;font:inherit;font-size:12px;font-weight:700;padding:14px;cursor:pointer;display:block;margin:0 auto}
+.hh-form input{margin-bottom:10px}.hh-form .hh-primary{min-height:48px}
+.hh-form label.check{display:flex;align-items:flex-start;gap:9px}.hh-form input[type=checkbox]{width:18px!important;min-height:18px!important;flex:none;margin-top:2px}
+.hh-error{color:#a12b21;font-size:12px;line-height:1.6;margin:12px 0}
+.hh-session-note{font-size:11px!important;line-height:1.6!important;color:#78756d!important}
+#householdSheet .sheet{background:var(--setup-bg);padding:30px 20px;max-height:92dvh;overflow:auto}
+#householdSheet h2{font-size:25px;margin-bottom:8px}
+#profileHousehold .hh-panel{margin-top:4px}#profileHousehold>h4{font-size:10px;letter-spacing:.6px;color:#77746e;margin-top:18px}
+#householdSyncBar{margin:8px 0 12px;padding:11px 13px;background:#edf2f8;border:1px solid #dce4f2;border-radius:12px;color:#29416a;font-size:11px;line-height:1.6}
+#householdSyncBar[hidden]{display:none}#householdSyncBar button{border:0;background:white;border-radius:8px;color:var(--setup-blue);font:inherit;font-weight:700;padding:7px;margin:5px 4px 0 0;cursor:pointer}
+#googleLoginBox{margin:20px 0 14px;display:flex;flex-direction:column;align-items:center;gap:9px}
+#googleLoginBox p{font-size:11px;color:#77746e;text-align:center;line-height:1.5}
+#googleFallback{width:100%;min-height:47px;border:1px solid #dadce0;background:white;border-radius:12px;color:#3c4043;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+#googleFallback b{font-size:20px;margin-right:14px;color:#4285f4}
+#authScreen .studio-welcome{display:none!important}
+#authScreen .auth-box{background:var(--setup-bg)!important;box-shadow:none!important;border-color:var(--setup-line)!important}
+#authScreen{background:var(--setup-bg)!important}
+#weeklyBest{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;margin-top:24px}
+#weeklyBest h3{font-size:19px;margin:6px 0 10px}#weeklyBest p{font-size:12px;line-height:1.6;color:var(--muted)}
+#weeklyBestItems .weekly-buy{border-top:1px solid var(--line);padding:12px 0;display:flex;gap:12px;align-items:center}#weeklyBestItems img{width:48px;height:54px;object-fit:contain}#weeklyBestItems b{font-size:12px}#weeklyBestItems small{font-size:10px;display:block;color:var(--muted);line-height:1.6;margin-top:4px}#weeklyBestItems strong{color:var(--accent);font-size:14px}#weeklyBestItems button{border:0;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:9px;font-size:11px;margin-top:8px;cursor:pointer}
+@media(max-width:360px){#savlyOnboarding .setup-step{padding:20px}#savlyOnboarding .setup-top{padding-left:20px;padding-right:20px}#savlyOnboarding h2{font-size:23px!important}.hh-code strong{font-size:17px}#savlyOnboarding .ob-card{padding:11px!important}}
+#savlyOnboarding h2:focus{outline:none}
+#savlyOnboarding .setup-center{display:flex;flex-direction:column;align-items:center;justify-content:center}
+#savlyOnboarding .setup-center h2{font-size:28px!important;letter-spacing:-1px}
+#savlyOnboarding .setup-icon{flex:none}
+#savlyOnboarding .ob-card{margin:0!important}
+#householdContent input:not([type=checkbox]){width:100%;min-height:48px;padding:12px 15px;border:1px solid var(--setup-blue);border-radius:14px;font:inherit;background:white;color:#111827}
+
+/* Consistent selectable cards and comfortable action spacing. */
+#savlyOnboarding .priority-choices{display:grid;gap:12px}
+#savlyOnboarding .priority-choice{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:58px;padding:16px;border:2px solid #d9dfec;border-radius:15px;background:#fff;color:#0a2167;font:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer}
+#savlyOnboarding .priority-choice[aria-pressed=true]{background:#0a2167;border-color:#0a2167;color:#fff}
+#savlyOnboarding [data-step="5"] h2{margin-bottom:18px!important}
+#savlyOnboarding [data-step="5"]>p{margin-bottom:30px;line-height:1.85}
+.hh-panel p,.hh-panel label,.hh-form label{line-height:1.8;margin:16px 0 10px}
+.hh-form input{margin-bottom:18px}.hh-form .check{margin:18px 0 24px}
+.hh-secondary{margin-top:16px}.hh-session-note{line-height:1.85!important}
+#catChips{display:none!important}
+#searchResults .btn,#tripCompare .btn{background:#0a2167!important;color:#fff!important;border:1px solid #0a2167!important;min-height:48px;padding:14px 18px;line-height:1.4;height:auto;white-space:normal;box-sizing:border-box;border-radius:14px;cursor:pointer}
+#searchResults .btn:disabled,#tripCompare .btn:disabled{opacity:.55;cursor:wait}
+#tripCompare .api-plan-actions{display:grid;grid-template-columns:1fr;gap:12px;margin:20px 0 24px}
+#tripCompare .api-plan-actions .btn{display:block;width:100%;margin:0!important;position:static!important}
+#searchResults .btn{display:block;width:100%;margin:12px 0 0!important}
+.home-quick-actions{display:flex;justify-content:center;gap:32px;margin:24px 0 28px}
+.home-quick-actions button{display:flex;flex-direction:column;align-items:center;gap:10px;border:0;background:none;color:#0a2167;font:inherit;cursor:pointer;padding:4px}
+.home-quick-actions button>span{width:58px;height:58px;display:grid;place-items:center;border-radius:50%;background:#0a2167;color:white;font-size:30px;box-shadow:0 5px 14px #0a216720}
+.home-quick-actions b{font-size:12px}.home-quick-actions button:focus-visible,.priority-choice:focus-visible{outline:3px solid #608eea;outline-offset:4px}
+/* Handle stays on the left; hinge and opening direction are on the right. */
+.rf-front{transform-origin:right center!important}
+.rf-scene.open .rf-front{transform:rotateY(105deg)!important}
+
+/* Clear explanations and a transparent Pro introduction. */
+.priority-choice b,.priority-choice small{display:block}.priority-choice small{font-size:12px;line-height:1.55;font-weight:400;margin-top:7px;opacity:.85}
+.home-quick-actions{position:absolute!important;left:auto;right:max(16px,env(safe-area-inset-right));bottom:calc(90px + env(safe-area-inset-bottom));z-index:40;margin:0!important;gap:12px!important;align-items:end;background:transparent;border:0;border-radius:0;padding:0!important;box-shadow:none}
+.home-quick-actions[hidden],.savly-onboarding-active .home-quick-actions{display:none!important}
+.home-quick-actions button{padding:0;gap:0}.home-quick-actions button>span{width:52px;height:52px;font-size:26px}.home-quick-actions svg{width:24px;height:24px;display:block}
+.screen{padding-bottom:130px!important}
+.pro-home-card,.pro-offer{background:#0a2167!important;color:white!important;border-radius:22px;padding:24px;margin:22px 0;box-shadow:0 10px 24px #0a216721}
+.pro-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.3px;color:#d9e5ff}
+.pro-home-card h3,.pro-offer h3{color:white!important;font-size:24px;line-height:1.25;margin:14px 0}
+.pro-home-card p,#savlyOnboarding .pro-offer p{color:#e3eaff!important;font-size:13px;line-height:1.6;margin:12px 0}
+.pro-home-card ul,.pro-offer ul{padding-left:20px;line-height:1.7;font-size:13px;margin:18px 0}
+.pro-home-bottom{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:20px 0 14px}
+.pro-home-bottom strong{font-size:25px}.pro-home-bottom small{display:block;margin-top:6px;font-size:11px}
+.pro-home-bottom button{background:white;color:#0a2167;border:0;border-radius:12px;padding:14px 17px;min-height:48px;font:inherit;font-weight:800;cursor:pointer}
+.pro-home-card>small{color:#d9e5ff;font-size:11px}.pro-active-label{display:none}.savly-pro-active .pro-active-label{display:block}
+#savlyOnboarding .pro-offer{margin:4px 0 20px;padding:22px}.pro-price{font-size:34px;font-weight:850}.pro-price small{font-size:14px;font-weight:500}
+.pro-offer li{margin:12px 0}.pro-offer li small{display:block;font-size:11px;color:#cbd9ff}
+.pro-free-summary{background:white;border:1px solid #e0e4ee;border-radius:15px;padding:17px}.pro-free-summary b{color:#0a2167}
+#savlyOnboarding .pro-free-summary p{margin:8px 0 0;font-size:12px}
+#savlyOnboarding .pro-demo-note{font-size:12px;line-height:1.6;margin:20px 0 0}
+.pro-skip{display:block;width:100%;min-height:50px;background:white;color:#0a2167;border:1px solid #b8c5df;border-radius:15px;margin-top:12px;padding:14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+
+/* Pro members never see upgrade promotions. */
+.savly-pro-active .pro-home-card,.savly-pro-active .pro-promotion,.savly-pro-active .pro-setup,.savly-pro-active #searchOverlay,.savly-pro-active #scanOverlay,.savly-pro-active .tips-locked{display:none!important}
+
+.setup-progress i[hidden]{display:none!important}
+
+/* Anchor actions to #phone, above its navigation, including 9:16 previews. */
+#screen-innstillinger #savePriceNote{font-weight:500!important;font-size:14px}
