@@ -341,7 +341,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if part.path in ('/api/session','/api/household'):return self.household('GET',part.path,{})
             if part.path.startswith('/api/'):return self.send(200,api(part.path,parse_qs(part.query)))
-            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
+            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
             if part.path not in files:return self.send(404,{'error':'Fant ikke siden.'})
             name,kind=files[part.path];return self.send(200,(ROOT/name).read_bytes(),kind)
         except (ApiError,households.HouseholdError) as e:return self.send(e.status,{'error':e.message})
@@ -351,7 +351,7 @@ if __name__=='__main__':
     if not KEY: KEY=getpass.getpass('Kassalapp API-nøkkel (skjult, Enter hopper over prissøk): ').strip()
     port=int(os.environ.get('PORT','8787'))
     households.init_db()
-    host = '0.0.0.0'
+    host='0.0.0.0' if os.environ.get('PORT') or os.environ.get('SAVLY_PUBLIC_ORIGIN') else '127.0.0.1'
     print(f'Åpne http://localhost:{port} — avslutt med Ctrl+C. Nøkkelen lagres ikke.')
     if os.environ.get('SAVLY_PUBLIC_ORIGIN'):print('Delt adresse: '+os.environ['SAVLY_PUBLIC_ORIGIN'])
     ThreadingHTTPServer((host,port),Handler).serve_forever()
