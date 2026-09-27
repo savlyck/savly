@@ -351,7 +351,7 @@ if __name__=='__main__':
     if not KEY: KEY=getpass.getpass('Kassalapp API-nøkkel (skjult, Enter hopper over prissøk): ').strip()
     port=int(os.environ.get('PORT','8787'))
     households.init_db()
-    host='0.0.0.0' if os.environ.get('SAVLY_PUBLIC_ORIGIN') else '127.0.0.1'
+    host = '0.0.0.0'
     print(f'Åpne http://localhost:{port} — avslutt med Ctrl+C. Nøkkelen lagres ikke.')
     if os.environ.get('SAVLY_PUBLIC_ORIGIN'):print('Delt adresse: '+os.environ['SAVLY_PUBLIC_ORIGIN'])
     ThreadingHTTPServer((host,port),Handler).serve_forever()
