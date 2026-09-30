@@ -14,7 +14,7 @@ async function hhRequest(path,body){
  let response;
  try{response=await fetch(path,opts);}catch{throw new Error('Ingen kontakt med SAVLY-serveren. Endringene er ikke sendt.');}
  let data;try{data=await response.json();}catch{throw new Error('Start den nye server.py og åpne appen via serveradressen.');}
- if(!response.ok){const err=new Error(data.error||'Kunne ikke fullføre.');err.status=response.status;throw err;}
+ if(!response.ok){const err=new Error(data.error||'Kunne ikke fullføre.');err.status=response.status;err.code=data.code;throw err;}
  if(data.csrf)hhConfig={...hhConfig,csrf:data.csrf,nonce:data.nonce};return data;
 }
 var hhReady=hhRequest('/api/session').then(data=>{hhConfig=data;hhSetupGoogle();return data;}).catch(e=>{document.getElementById('googleStatus').textContent=e.message;return null;});
@@ -33,7 +33,29 @@ function hhSetupGoogle(){
 }
 async function hhGoogleLogin(result){
  if(hhWorking)return;hhWorking=true;
- try{const data=await hhRequest('/api/auth/google',{credential:result.credential});hhAuthenticated(data);}catch(e){document.getElementById('authErr').textContent=e.message;}finally{hhWorking=false;}
+ const expectedNonce=hhConfig?.nonce;
+ try{
+  // Revalidate after returning from Google's popup. Never replay a Google
+  // credential against a newly created nonce or bypass the CSRF check.
+  const current=await hhRequest('/api/session');hhConfig=current;
+  if(current.nonce!==expectedNonce){await hhRecoverLogin();return;}
+  const data=await hhRequest('/api/auth/google',{credential:result.credential});hhAuthenticated(data);
+ }catch(e){
+  if(e.code==='SESSION_STALE'){
+   try{await hhRecoverLogin();}catch(recovery){document.getElementById('authErr').textContent=recovery.message;}
+  }else document.getElementById('authErr').textContent=e.message;
+ }finally{hhWorking=false;}
+}
+async function hhRecoverLogin(){
+ const first=await hhRequest('/api/session');
+ const second=await hhRequest('/api/session');
+ hhConfig=second;
+ if(first.nonce!==second.nonce){
+  document.getElementById('authErr').textContent='SAVLY klarer ikke å beholde nettleserøkten. Feilkode: SESSION_NOT_RETAINED. Send denne koden til support.';
+  return;
+ }
+ hhSetupGoogle();
+ document.getElementById('authErr').textContent='Økten er fornyet. Trykk på Google-knappen én gang til for å fullføre innloggingen.';
 }
 async function authSubmit(){
  if(hhWorking)return;const err=document.getElementById('authErr');err.textContent='';
@@ -171,9 +193,9 @@ async function finishSavlyOnboarding(plan=state.isPro?'pro':'free'){
  hhWorking=true;
  try{
   if(hhHome?.owner&&hhHome.size!==obDraft.household){const d=await hhRequest('/api/household/update',{name:hhHome.name,size:obDraft.household});hhHome=d.home;}
-  state.budget=budget;localStorage.setItem('ms_budget',String(budget));
+  state.budget=budget;savlyStore('ms_budget',String(budget));
   Object.assign(state.prefs,{favoriteStores:[...obDraft.stores],householdSize:hhHome?.size||obDraft.household,shoppingPriority:document.getElementById('setupPriority').value,diet:[...obDraft.diet],allergies:[...obDraft.allergies],area:document.getElementById('obArea').value.trim(),onboarded:true});
-  localStorage.setItem('ms_prefs',JSON.stringify(state.prefs));state.storeFilter=Object.fromEntries(Object.keys(STORE_NAMES).map(id=>[id,obDraft.stores.includes(id)]));localStorage.setItem('ms_stores',JSON.stringify(state.storeFilter));renderStoreFilter();state.prototypeSetupComplete=true;unlockAppAfterOnboarding();renderPrefs();renderHomeBudget();renderList();state.isPro=plan==='pro';if(state.isPro){localStorage.setItem('ms_pro','1');}else{localStorage.removeItem('ms_pro');}go('home');hhRenderProfile();toast(plan==='pro'?'Pro-demo er aktivert. Ingen betaling eller abonnement.':'SAVLY Gratis er klar for deg.');
+  savlyStore('ms_prefs',JSON.stringify(state.prefs));state.storeFilter=Object.fromEntries(Object.keys(STORE_NAMES).map(id=>[id,obDraft.stores.includes(id)]));savlyStore('ms_stores',JSON.stringify(state.storeFilter));renderStoreFilter();state.prototypeSetupComplete=true;unlockAppAfterOnboarding();renderPrefs();renderHomeBudget();renderList();state.isPro=plan==='pro';if(state.isPro){savlyStore('ms_pro','1');}else{localStorage.removeItem('ms_pro');}go('home');hhRenderProfile();toast(plan==='pro'?'Pro-demo er aktivert. Ingen betaling eller abonnement.':'SAVLY Gratis er klar for deg.');
  }catch(e){toast(e.message);}finally{hhWorking=false;}
 }
 
