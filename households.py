@@ -27,6 +27,7 @@ def init_db():
         with sqlite3.connect(DB_PATH,factory=ClosingConnection) as db:
             db.executescript('''
                 PRAGMA journal_mode=WAL;
+                CREATE TABLE IF NOT EXISTS login_attempts(id TEXT PRIMARY KEY,csrf TEXT NOT NULL,nonce TEXT NOT NULL,expires REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,provider TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS homes(id TEXT PRIMARY KEY,name TEXT NOT NULL,size INTEGER NOT NULL,owner TEXT NOT NULL,code TEXT UNIQUE NOT NULL,expires REAL NOT NULL,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0);
                 CREATE TABLE IF NOT EXISTS accounts(user_id TEXT PRIMARY KEY,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,created_at REAL NOT NULL,last_login REAL NOT NULL);
@@ -193,7 +194,18 @@ def verify_google(credential, nonce):
 
 def handle(method,path,body,cookie,csrf,ip):
     token,sess=session(cookie)
-    if method!='GET':
+    login_nonce=None
+    if method=='POST' and path=='/api/auth/google' and 'loginAttempt' in body:
+        limit('login-attempt:'+ip,20,600)
+        attempt=text(body.get('loginAttempt'),'innloggingsforsøk',100)
+        with connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT * FROM login_attempts WHERE id=? AND expires>?',(attempt,time.time())).fetchone()
+            if not row or not isinstance(csrf,str) or not secrets.compare_digest(csrf,row['csrf']):
+                raise HouseholdError(403,'Innloggingsforsøket er utløpt. Last siden på nytt.','LOGIN_ATTEMPT_EXPIRED')
+            login_nonce=row['nonce']
+            db.execute('DELETE FROM login_attempts WHERE id=?',(attempt,))
+    if method!='GET' and login_nonce is None:
         if not isinstance(csrf,str) or not secrets.compare_digest(csrf,sess['csrf']):
             # Log classifications only: no cookies, tokens, user IDs or credentials.
             supplied=''
@@ -207,13 +219,17 @@ def handle(method,path,body,cookie,csrf,ip):
         limit('write:'+ip,120,60)
     if path=='/api/session' and method=='GET':
         user=sess.get('user')
+        limit('session-read:'+ip,120,60)
         with connection() as db:
-            return {'csrf':sess['csrf'],'nonce':sess['nonce'],'googleClientId':GOOGLE_CLIENT_ID if google_ready() else None,'user':user,'home':home_view(db,user) if user else None,'account':account_view(db,user)},token
+            attempt=secrets.token_urlsafe(32)
+            db.execute('DELETE FROM login_attempts WHERE expires<?',(time.time(),))
+            db.execute('INSERT INTO login_attempts VALUES(?,?,?,?)',(attempt,sess['csrf'],sess['nonce'],time.time()+600))
+            return {'loginAttempt':attempt,'csrf':sess['csrf'],'nonce':sess['nonce'],'googleClientId':GOOGLE_CLIENT_ID if google_ready() else None,'user':user,'home':home_view(db,user) if user else None,'account':account_view(db,user)},token
     if path in ('/api/auth/demo','/api/auth/google') and method=='POST':
         limit('auth:'+ip,20,600)
         if path.endswith('demo'):
             user={'id':'d_'+secrets.token_urlsafe(18),'name':text(body.get('name'),'navn'),'provider':'demo'}
-        else:user=verify_google(text(body.get('credential'),'Google-token',10000),sess['nonce'])
+        else:user=verify_google(text(body.get('credential'),'Google-token',10000),login_nonce or sess['nonce'])
         forget_demo(sess.get('user'))
         with connection() as db:
             db.execute('INSERT INTO users VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name',(user['id'],user['name'],user['provider']))
