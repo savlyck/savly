@@ -1,5 +1,5 @@
 """Household membership, transient browser sessions and transactional shared data."""
-import copy, hashlib, json, os, re, secrets, sqlite3, threading, time
+import copy, hashlib, json, os, re, secrets, sqlite3, threading, time, logging
 from pathlib import Path
 from http.cookies import SimpleCookie
 
@@ -18,7 +18,7 @@ class ClosingConnection(sqlite3.Connection):
         finally: self.close()
 
 class HouseholdError(Exception):
-    def __init__(self, status, message): self.status, self.message = status, message
+    def __init__(self, status, message, code=None): self.status, self.message, self.code = status, message, code
 
 def init_db():
     global INITIALIZED
@@ -29,6 +29,7 @@ def init_db():
                 PRAGMA journal_mode=WAL;
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,provider TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS homes(id TEXT PRIMARY KEY,name TEXT NOT NULL,size INTEGER NOT NULL,owner TEXT NOT NULL,code TEXT UNIQUE NOT NULL,expires REAL NOT NULL,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE IF NOT EXISTS accounts(user_id TEXT PRIMARY KEY,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,created_at REAL NOT NULL,last_login REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS members(user_id TEXT PRIMARY KEY,home_id TEXT NOT NULL,joined REAL NOT NULL);
             ''')
             db.execute("DELETE FROM members WHERE user_id IN (SELECT id FROM users WHERE provider='demo')")
@@ -144,6 +145,34 @@ def home_view(db,user):
     return {'id':row['id'],'name':row['name'],'size':row['size'],'members':members,'owner':row['owner']==user['id'],
         'code':row['code'] if row['expires']>time.time() else None,'codeExpires':row['expires'],'data':json.loads(row['data']),'revision':row['revision']}
 
+
+def default_account():
+    return {'personal':copy.deepcopy(EMPTY),'prefs':{'diet':[],'allergies':[],'householdSize':1,'favoriteStores':['rem','kiwi','extra'],'favoriteItems':[],'onboarded':False},'budget':2500,'purchases':[],'suggestions':[],'storeFilter':{'rem':True,'kiwi':True,'extra':True}}
+
+def account_view(db,user):
+    if not user or user.get('provider')!='google':return None
+    row=db.execute('SELECT * FROM accounts WHERE user_id=?',(user['id'],)).fetchone()
+    return {'data':json.loads(row['data']),'revision':row['revision']} if row else None
+
+def validate_account(data):
+    if not isinstance(data,dict) or set(data)!=set(default_account()):raise HouseholdError(400,'Ugyldige kontodata.')
+    validate_data(data['personal'])
+    if type(data['budget']) not in (int,float) or not 0<data['budget']<=1000000:raise HouseholdError(400,'Ugyldig budsjett.')
+    prefs=data['prefs']
+    if not isinstance(prefs,dict) or len(prefs)>40:raise HouseholdError(400,'Ugyldige preferanser.')
+    for key in ('diet','allergies','favoriteStores','favoriteItems'):
+        values=prefs.get(key,[])
+        if not isinstance(values,list) or len(values)>100 or any(not isinstance(v,str) or len(v)>200 for v in values):raise HouseholdError(400,'Ugyldige preferanser.')
+    if type(prefs.get('onboarded',False)) is not bool:raise HouseholdError(400,'Ugyldig oppsettstatus.')
+    if 'householdSize' in prefs:size(prefs['householdSize'])
+    for key in ('purchases','suggestions'):
+        if not isinstance(data[key],list) or len(data[key])>2000 or any(not isinstance(v,dict) for v in data[key]):raise HouseholdError(400,'For mange eller ugyldige notater.')
+    if not isinstance(data['storeFilter'],dict) or len(data['storeFilter'])>100 or any(type(v) is not bool for v in data['storeFilter'].values()):raise HouseholdError(400,'Ugyldig butikkfilter.')
+    try:encoded=json.dumps(data,allow_nan=False)
+    except (ValueError,TypeError):raise HouseholdError(400,'Ugyldige kontodata.')
+    if len(encoded)>700000:raise HouseholdError(413,'Kontoen har for mye data.')
+    return encoded
+
 def google_ready():
     if not GOOGLE_CLIENT_ID:return False
     try:from google.oauth2 import id_token;from google.auth.transport import requests
@@ -165,10 +194,21 @@ def verify_google(credential, nonce):
 def handle(method,path,body,cookie,csrf,ip):
     token,sess=session(cookie)
     if method!='GET':
-        if not isinstance(csrf,str) or not secrets.compare_digest(csrf,sess['csrf']):raise HouseholdError(403,'Økten er utløpt. Last inn siden på nytt.')
+        if not isinstance(csrf,str) or not secrets.compare_digest(csrf,sess['csrf']):
+            # Log classifications only: no cookies, tokens, user IDs or credentials.
+            supplied=''
+            try:
+                parsed=SimpleCookie();parsed.load(cookie or '')
+                supplied=parsed['savly_session'].value if 'savly_session' in parsed else ''
+            except Exception:pass
+            reason='cookie_missing' if not supplied else 'session_unknown' if supplied!=token else 'csrf_mismatch'
+            logging.warning('SAVLY session rejected: %s',reason)
+            raise HouseholdError(403,'Økten må fornyes.','SESSION_STALE')
         limit('write:'+ip,120,60)
     if path=='/api/session' and method=='GET':
-        return {'csrf':sess['csrf'],'nonce':sess['nonce'],'googleClientId':GOOGLE_CLIENT_ID if google_ready() else None},token
+        user=sess.get('user')
+        with connection() as db:
+            return {'csrf':sess['csrf'],'nonce':sess['nonce'],'googleClientId':GOOGLE_CLIENT_ID if google_ready() else None,'user':user,'home':home_view(db,user) if user else None,'account':account_view(db,user)},token
     if path in ('/api/auth/demo','/api/auth/google') and method=='POST':
         limit('auth:'+ip,20,600)
         if path.endswith('demo'):
@@ -177,15 +217,30 @@ def handle(method,path,body,cookie,csrf,ip):
         forget_demo(sess.get('user'))
         with connection() as db:
             db.execute('INSERT INTO users VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name',(user['id'],user['name'],user['provider']))
+            if user['provider']=='google':
+                now=time.time()
+                db.execute('INSERT INTO accounts(user_id,data,created_at,last_login) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET last_login=excluded.last_login',(user['id'],json.dumps(default_account()),now,now))
+            account=account_view(db,user)
             home=home_view(db,user)
         token,sess=rotate(token,user)
-        return {'user':user,'home':home,'csrf':sess['csrf'],'nonce':sess['nonce']},token
+        return {'user':user,'home':home,'account':account,'csrf':sess['csrf'],'nonce':sess['nonce']},token
     if path=='/api/auth/logout' and method=='POST':
         forget_demo(sess.get('user'));token,sess=rotate(token,None)
         return {'csrf':sess['csrf'],'nonce':sess['nonce']},token
     user=sess.get('user')
     if not user:raise HouseholdError(401,'Logg inn før du bruker husstand.')
     with connection() as db:
+        if path=='/api/account':
+            if user['provider']!='google':raise HouseholdError(403,'Kontolagring krever Google-innlogging.')
+            if method=='GET':return {'account':account_view(db,user)},token
+            if method=='POST':
+                encoded=validate_account(body.get('data'))
+                revision=body.get('revision')
+                if type(revision) is not int or revision<0:raise HouseholdError(400,'Ugyldig versjon.')
+                db.execute('BEGIN IMMEDIATE')
+                result=db.execute('UPDATE accounts SET data=?,revision=revision+1 WHERE user_id=? AND revision=?',(encoded,user['id'],revision))
+                if result.rowcount!=1:raise HouseholdError(409,'Kontoen er endret på en annen enhet. Last ned din kopi før du henter den lagrede versjonen.')
+                return {'account':account_view(db,user)},token
         if method=='GET' and path=='/api/household':return {'home':home_view(db,user)},token
         db.execute('BEGIN IMMEDIATE')
         row=get_home(db,user)

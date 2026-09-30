@@ -1,5 +1,5 @@
 """SAVLY local price gateway. Secrets never served to the browser."""
-import os, json, time, math, re, getpass, threading, unicodedata, urllib.request, urllib.error
+import os, sys, json, time, math, re, getpass, threading, unicodedata, urllib.request, urllib.error
 from urllib.parse import urlsplit, parse_qs, urlencode
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -9,6 +9,9 @@ ROOT = Path(__file__).resolve().parent / 'public'
 STORES = {'REMA_1000':'rem','KIWI':'kiwi','COOP_OBS':'obs','COOP_EXTRA':'extra','MENY_NO':'meny','SPAR_NO':'spar','BUNNPRIS':'bunnpris','JOKER_NO':'joker','COOP_MEGA':'mega','COOP_PRIX':'prix','COOP_MARKED':'marked','MATKROKEN':'matkroken','NAERBUTIKKEN':'narbutikken','HOLDBART':'holdbart'}
 # EUROSPAR and Gigaboks stay in the UI; do not invent undocumented API mappings.
 KEY = os.environ.get('KASSALAPP_API_KEY', '').strip()
+# Local safeguards, independent of the commercial entitlement at Kassalapp.
+API_PER_MINUTE = max(1, int(os.environ.get('KASSALAPP_REQUESTS_PER_MINUTE', '50')))
+API_PER_HOUR = max(1, int(os.environ.get('KASSALAPP_REQUESTS_PER_HOUR', '1000')))
 CACHE, REQUESTS = {}, []
 LOCK = threading.Lock()
 SLOTS = threading.BoundedSemaphore(4)
@@ -27,7 +30,7 @@ def fetch(path):
         hit = CACHE.get(path)
         if hit and now-hit[0] < 300: return hit[1]
         REQUESTS[:] = [t for t in REQUESTS if now-t < 3600]
-        if len(REQUESTS) >= 100 or sum(now-t < 60 for t in REQUESTS) >= 20:
+        if len(REQUESTS) >= API_PER_HOUR or sum(now-t < 60 for t in REQUESTS) >= API_PER_MINUTE:
             raise ApiError(429, 'Mange prissøk. Vent litt og prøv igjen.')
         REQUESTS.append(now)
     if not SLOTS.acquire(blocking=False): raise ApiError(429, 'Prissøk pågår. Prøv igjen om litt.')
@@ -273,7 +276,10 @@ def api(path, query):
     if path=='/api/products':
         q=query.get('q',[''])[0].strip(); store=query.get('store',[''])[0]
         if not 3<=len(q)<=100: raise ApiError(400,'Skriv mellom 3 og 100 tegn.')
-        args={'search':q,'size':100,'unique':'0'}
+        try: page=int(query.get('page',['1'])[0])
+        except (ValueError,TypeError): raise ApiError(400,'Ugyldig resultatside.')
+        if not 1<=page<=1000: raise ApiError(400,'Ugyldig resultatside.')
+        args={'search':q,'size':100,'unique':'0','page':page}
         if store:
             if store not in STORES: raise ApiError(400,'Butikken har ingen bekreftet API-kobling.')
             args['store']=store
@@ -288,7 +294,7 @@ def api(path, query):
                 p['relevance']=relevance
                 products.append(p)
         products.sort(key=lambda p: (-p['relevance'], p['price'] if p['price'] is not None else math.inf))
-        return {'products':products,'limited':bool((data.get('links') or {}).get('next')),'source':'Kassalapp'}
+        return {'products':products,'limited':bool((data.get('links') or {}).get('next')),'page':page,'source':'Kassalapp'}
     if path=='/api/compare':
         ean=query.get('ean',[''])[0]
         if not re.fullmatch(r'\d{8,14}',ean): raise ApiError(400,'Ugyldig strekkode.')
@@ -332,23 +338,23 @@ class Handler(BaseHTTPRequestHandler):
             body=json.loads(self.rfile.read(length))
             if not isinstance(body,dict):return self.send(400,{'error':'Ugyldig forespørsel.'})
             return self.household('POST',urlsplit(self.path).path,body)
-        except households.HouseholdError as e:return self.send(e.status,{'error':e.message})
+        except households.HouseholdError as e:return self.send(e.status,{'error':e.message,'code':e.code})
         except (ValueError,TypeError):return self.send(400,{'error':'Ugyldige data.'})
         except Exception:return self.send(500,{'error':'Kunne ikke lagre endringen. Prøv igjen.'})
     def do_GET(self):
         if not self.valid_origin():return self.send(403,{'error':'Ugyldig opphav.'})
         part=urlsplit(self.path)
         try:
-            if part.path in ('/api/session','/api/household'):return self.household('GET',part.path,{})
+            if part.path in ('/api/session','/api/household','/api/account'):return self.household('GET',part.path,{})
             if part.path.startswith('/api/'):return self.send(200,api(part.path,parse_qs(part.query)))
-            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
+            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/account.js':('account.js','text/javascript; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
             if part.path not in files:return self.send(404,{'error':'Fant ikke siden.'})
             name,kind=files[part.path];return self.send(200,(ROOT/name).read_bytes(),kind)
         except (ApiError,households.HouseholdError) as e:return self.send(e.status,{'error':e.message})
         except Exception:return self.send(502,{'error':'Kunne ikke behandle data.'})
 
 if __name__=='__main__':
-    if not KEY: KEY=getpass.getpass('Kassalapp API-nøkkel (skjult, Enter hopper over prissøk): ').strip()
+    if not KEY and sys.stdin.isatty(): KEY=getpass.getpass('Kassalapp API-nøkkel (skjult, Enter hopper over prissøk): ').strip()
     port=int(os.environ.get('PORT','8787'))
     households.init_db()
     host='0.0.0.0' if os.environ.get('PORT') or os.environ.get('SAVLY_PUBLIC_ORIGIN') else '127.0.0.1'
