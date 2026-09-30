@@ -8,9 +8,9 @@ const hhEsc=x=>esc(String(x??''));
 const hhIcons={cart:'<path d="M3 3h2l3 12h10l3-9H6M9 20h.01M18 20h.01"/>',store:'<path d="M3 8l2-5h14l2 5v3a3 3 0 0 1-4 2 3 3 0 0 1-5 0 3 3 0 0 1-5 0 3 3 0 0 1-4-2V8zm2 6v7h14v-7M9 21v-6h6v6M3 8h18"/>',heart:'<path d="M20 4c-3-3-7-1-8 1C8-1 0 4 3 10c2 4 9 10 9 10s7-6 9-10c1-2 1-4-1-6z"/>',wallet:'<path d="M19 7V4H5a2 2 0 0 0 0 4h15v12H5a2 2 0 0 1-2-2V6m17 6h-5v4h5"/>',home:'<path d="M3 10l9-7 9 7v11h-6v-8H9v8H3z"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-4M16 3a4 4 0 0 1 0 8"/><circle cx="9" cy="7" r="4"/>',share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m9 10 6-4m-6 8 6 4"/>',copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',check:'<path d="m4 12 5 5L21 5"/>'};
 function hhIcon(kind){return '<svg viewBox="0 0 24 24" aria-hidden="true">'+hhIcons[kind]+'</svg>';}
 document.querySelectorAll('[data-icon]').forEach(x=>x.innerHTML=hhIcon(x.dataset.icon));
-async function hhRequest(path,body){
+async function hhRequest(path,body,requestCsrf){
  const opts={credentials:'same-origin',signal:AbortSignal.timeout(15000)};
- if(body!==undefined){opts.method='POST';opts.headers={'Content-Type':'application/json','X-SAVLY-CSRF':hhConfig?.csrf||''};opts.body=JSON.stringify(body);}
+ if(body!==undefined){opts.method='POST';opts.headers={'Content-Type':'application/json','X-SAVLY-CSRF':requestCsrf??hhConfig?.csrf??''};opts.body=JSON.stringify(body);}
  let response;
  try{response=await fetch(path,opts);}catch{throw new Error('Ingen kontakt med SAVLY-serveren. Endringene er ikke sendt.');}
  let data;try{data=await response.json();}catch{throw new Error('Start den nye server.py og åpne appen via serveradressen.');}
@@ -23,7 +23,8 @@ function hhSetupGoogle(){
  const status=document.getElementById('googleStatus');
  if(!hhConfig?.googleClientId){status.textContent='Google er ikke aktivert på denne serveren ennå.';return;}
  const render=()=>{
-  google.accounts.id.initialize({client_id:hhConfig.googleClientId,callback:hhGoogleLogin,nonce:hhConfig.nonce,auto_select:false});
+  const attempt={...hhConfig};
+  google.accounts.id.initialize({client_id:attempt.googleClientId,callback:result=>hhGoogleLogin(result,attempt),nonce:attempt.nonce,auto_select:false});
   document.getElementById('googleButton').innerHTML='';google.accounts.id.renderButton(document.getElementById('googleButton'),{theme:'outline',size:'large',text:'continue_with',shape:'pill',width:280});
   document.getElementById('googleFallback').hidden=true;status.textContent='Logg inn for å finne igjen husstanden din.';
  };
@@ -31,31 +32,20 @@ function hhSetupGoogle(){
  if(document.getElementById('googleIdentityScript'))return;
  const script=document.createElement('script');script.id='googleIdentityScript';script.src='https://accounts.google.com/gsi/client?hl=nb';script.async=true;script.onload=render;script.onerror=()=>{status.textContent='Google kunne ikke lastes. Prøv igjen senere.';};document.head.appendChild(script);
 }
-async function hhGoogleLogin(result){
+async function hhGoogleLogin(result,attempt){
  if(hhWorking)return;hhWorking=true;
- const expectedNonce=hhConfig?.nonce;
+ const err=document.getElementById('authErr');err.textContent='';
  try{
-  // Revalidate after returning from Google's popup. Never replay a Google
-  // credential against a newly created nonce or bypass the CSRF check.
-  const current=await hhRequest('/api/session');hhConfig=current;
-  if(current.nonce!==expectedNonce){await hhRecoverLogin();return;}
-  const data=await hhRequest('/api/auth/google',{credential:result.credential});hhAuthenticated(data);
- }catch(e){
-  if(e.code==='SESSION_STALE'){
-   try{await hhRecoverLogin();}catch(recovery){document.getElementById('authErr').textContent=recovery.message;}
-  }else document.getElementById('authErr').textContent=e.message;
+  if(!attempt?.loginAttempt)throw new Error('Innloggingsknappen må oppdateres. Last siden på nytt.');
+  const data=await hhRequest('/api/auth/google',{credential:result.credential,loginAttempt:attempt.loginAttempt},attempt.csrf);
+  // Do not claim success unless the new authenticated cookie is retained.
+  const check=await hhRequest('/api/session');
+  if(check.user?.id!==data.user.id)throw new Error('Nettleseren beholdt ikke innloggingen. Feilkode: AUTH_COOKIE_NOT_RETAINED.');
+  hhConfig=check;hhAuthenticated(check);
+ }catch(e){err.textContent=e.message;
+  // Prepare a fresh single-use attempt without automatically resubmitting.
+  try{hhConfig=await hhRequest('/api/session');hhSetupGoogle();}catch{}
  }finally{hhWorking=false;}
-}
-async function hhRecoverLogin(){
- const first=await hhRequest('/api/session');
- const second=await hhRequest('/api/session');
- hhConfig=second;
- if(first.nonce!==second.nonce){
-  document.getElementById('authErr').textContent='SAVLY klarer ikke å beholde nettleserøkten. Feilkode: SESSION_NOT_RETAINED. Send denne koden til support.';
-  return;
- }
- hhSetupGoogle();
- document.getElementById('authErr').textContent='Økten er fornyet. Trykk på Google-knappen én gang til for å fullføre innloggingen.';
 }
 async function authSubmit(){
  if(hhWorking)return;const err=document.getElementById('authErr');err.textContent='';
