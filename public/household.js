@@ -1,3 +1,8 @@
+// Support both the original web app and the newer account-backed storage.
+function hhStore(key,value){
+ if(typeof savlyStore==='function')return savlyStore(key,value);
+ localStorage.setItem(key,value);
+}
 /* Shared household state and six-step onboarding. No credentials in browser storage. */
 var hhHome=null,hhUser=null,hhBase=null,hhPersonal=null,hhDirty=false,hhBusy=false,hhProblem='',hhTimer=null,hhEdits=0,hhEpoch=0,hhStep=1,hhMode='choice',hhWorking=false,hhEditingSetup=false;
 var hhConfig=null,hhBest=[];
@@ -183,9 +188,9 @@ async function finishSavlyOnboarding(plan=state.isPro?'pro':'free'){
  hhWorking=true;
  try{
   if(hhHome?.owner&&hhHome.size!==obDraft.household){const d=await hhRequest('/api/household/update',{name:hhHome.name,size:obDraft.household});hhHome=d.home;}
-  state.budget=budget;savlyStore('ms_budget',String(budget));
+  state.budget=budget;hhStore('ms_budget',String(budget));
   Object.assign(state.prefs,{favoriteStores:[...obDraft.stores],householdSize:hhHome?.size||obDraft.household,shoppingPriority:document.getElementById('setupPriority').value,diet:[...obDraft.diet],allergies:[...obDraft.allergies],area:document.getElementById('obArea').value.trim(),onboarded:true});
-  savlyStore('ms_prefs',JSON.stringify(state.prefs));state.storeFilter=Object.fromEntries(Object.keys(STORE_NAMES).map(id=>[id,obDraft.stores.includes(id)]));savlyStore('ms_stores',JSON.stringify(state.storeFilter));renderStoreFilter();state.prototypeSetupComplete=true;unlockAppAfterOnboarding();renderPrefs();renderHomeBudget();renderList();state.isPro=plan==='pro';if(state.isPro){savlyStore('ms_pro','1');}else{localStorage.removeItem('ms_pro');}go('home');hhRenderProfile();toast(plan==='pro'?'Pro-demo er aktivert. Ingen betaling eller abonnement.':'SAVLY Gratis er klar for deg.');
+  hhStore('ms_prefs',JSON.stringify(state.prefs));state.storeFilter=Object.fromEntries(Object.keys(STORE_NAMES).map(id=>[id,obDraft.stores.includes(id)]));hhStore('ms_stores',JSON.stringify(state.storeFilter));renderStoreFilter();state.prototypeSetupComplete=true;unlockAppAfterOnboarding();renderPrefs();renderHomeBudget();renderList();state.isPro=plan==='pro';if(state.isPro){hhStore('ms_pro','1');}else{localStorage.removeItem('ms_pro');}go('home');hhRenderProfile();toast(plan==='pro'?'Pro-demo er aktivert. Ingen betaling eller abonnement.':'SAVLY Gratis er klar for deg.');
  }catch(e){toast(e.message);}finally{hhWorking=false;}
 }
 
