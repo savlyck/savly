@@ -1,7 +1,6 @@
 """Household membership, transient browser sessions and transactional shared data."""
 import copy, hashlib, json, os, re, secrets, sqlite3, threading, time, logging
 from pathlib import Path
-from http.cookies import SimpleCookie
 
 DB_PATH = os.environ.get('SAVLY_DB', str(Path(__file__).resolve().parent/'savly.sqlite3'))
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '').strip()
@@ -54,11 +53,20 @@ def forget_demo(user):
             db.execute('DELETE FROM members WHERE user_id=?',(user['id'],))
             db.execute('DELETE FROM users WHERE id=?',(user['id'],));clean_homes(db)
 
+def session_cookie(cookie_header):
+    """Read only our opaque token; unrelated JSON cookies must not break login."""
+    values=[]
+    for part in (cookie_header or '').split(';'):
+        name, separator, value=part.strip().partition('=')
+        if separator and name=='savly_session':
+            values.append(value)
+    # Reject ambiguous duplicates and anything we would never issue.
+    if len(values)!=1 or not re.fullmatch(r'[A-Za-z0-9_-]{43}',values[0]):
+        return ''
+    return values[0]
+
 def session(cookie_header):
-    token=''
-    try:
-        cookie=SimpleCookie();cookie.load(cookie_header or '');token=cookie['savly_session'].value if 'savly_session' in cookie else ''
-    except Exception:pass
+    token=session_cookie(cookie_header)
     with LOCK:
         now=time.time()
         for old in [k for k,v in SESSIONS.items() if v['expires']<now]:
@@ -208,11 +216,7 @@ def handle(method,path,body,cookie,csrf,ip):
     if method!='GET' and login_nonce is None:
         if not isinstance(csrf,str) or not secrets.compare_digest(csrf,sess['csrf']):
             # Log classifications only: no cookies, tokens, user IDs or credentials.
-            supplied=''
-            try:
-                parsed=SimpleCookie();parsed.load(cookie or '')
-                supplied=parsed['savly_session'].value if 'savly_session' in parsed else ''
-            except Exception:pass
+            supplied=session_cookie(cookie)
             reason='cookie_missing' if not supplied else 'session_unknown' if supplied!=token else 'csrf_mismatch'
             logging.warning('SAVLY session rejected: %s',reason)
             raise HouseholdError(403,'Økten må fornyes.','SESSION_STALE')
