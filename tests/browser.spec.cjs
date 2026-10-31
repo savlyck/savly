@@ -69,7 +69,7 @@ test('Account-backed content survives reload and concurrent devices merge their 
   await expect.poll(async()=>{const d=await first.evaluate(async()=>await (await fetch('/api/core')).json());return d.data?.meals?.length||0;}).toBe(1);
   await two.addCookies([{name:'savly_session',value:simulatedGoogleSession(),url:'http://127.0.0.1:8787'}]);
   const second=await two.newPage();await second.goto(url);
-  await expect(second.getByRole('heading',{name:'Ukeplan'})).toBeVisible();
+  await expect(second.getByRole('heading',{name:/God dag/})).toBeVisible();
   await first.locator('#tabs [data-tab=list]').click();
   await second.locator('#tabs [data-tab=list]').click();
   await first.locator('#new-item').fill('Papir');
