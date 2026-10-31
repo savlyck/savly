@@ -4,6 +4,8 @@ const url='http://127.0.0.1:8787/app';
 test('New guest -> first dinner -> shared ingredients -> editable shopping list survives reload',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto(url);
+ await expect(page.locator('.brand-logo')).toBeVisible();
+ await expect.poll(async()=>await page.locator('.brand-logo').evaluate(img=>img.complete && img.naturalWidth>0)).toBe(true);
  await expect(page.getByRole('heading',{name:'Planlegg middagen, handle det du trenger.'})).toBeVisible();
  await page.locator('#start-people').fill('2');
  await page.getByRole('button',{name:'Velg første middag'}).click();
@@ -87,6 +89,9 @@ test('Standalone HTML can be opened without server and build a grocery list',asy
  const {pathToFileURL}=require('node:url');
  const {resolve}=require('node:path');
  await page.goto(pathToFileURL(resolve(__dirname,'../SAVLY-forhandsvisning.html')).href);
+ await expect(page.locator('.brand-logo')).toBeVisible();
+ await expect.poll(async()=>await page.locator('.brand-logo').evaluate(img=>img.complete && img.naturalWidth>0)).toBe(true);
+ await expect(page.locator('#tabs svg')).toHaveCount(4);
  await expect(page.getByRole('heading',{name:'Planlegg middagen, handle det du trenger.'})).toBeVisible();
  await page.locator('#start-people').fill('2');
  await page.getByRole('button',{name:'Velg første middag'}).click();
