@@ -71,6 +71,44 @@
     result.push(...expected.values());
     return result;
   }
+  function rebase(base, local, remote){
+    // Apply only actual local edits on top of server-accepted remote changes.
+    const out=JSON.parse(JSON.stringify(remote)),absent=Symbol('absent');
+    const equal=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+    for(const kind of ['meals','list','pantry','favorites']){
+      const b=new Map(base[kind].map(x=>[x.id,x])),l=new Map(local[kind].map(x=>[x.id,x])),r=new Map(remote[kind].map(x=>[x.id,x]));
+      for(const id of new Set([...b.keys(),...l.keys()])){
+        const before=b.has(id)?b.get(id):absent;
+        const after=l.has(id)?l.get(id):absent;
+        const now=r.has(id)?r.get(id):absent;
+        if(equal(before,after)||equal(after,now))continue;
+        if(equal(before,now)){
+          if(after===absent)r.delete(id);else r.set(id,JSON.parse(JSON.stringify(after)));
+          continue;
+        }
+        if(before===absent||after===absent||now===absent)throw Error('Samtidig redigering av samme element. Eksporter dine endringer.');
+        const row={...now};
+        for(const field of new Set([...Object.keys(before),...Object.keys(after)])){
+          const old=Object.hasOwn(before,field)?before[field]:absent;
+          const next=Object.hasOwn(after,field)?after[field]:absent;
+          const current=Object.hasOwn(now,field)?now[field]:absent;
+          if(equal(old,next)||equal(next,current))continue;
+          if(!equal(old,current))throw Error('Samtidig redigering av samme felt. Eksporter dine endringer.');
+          if(next===absent)delete row[field];else row[field]=JSON.parse(JSON.stringify(next));
+        }
+        r.set(id,row);
+      }
+      out[kind]=[...r.values()];
+    }
+    for(const key of new Set([...Object.keys(base.prefs),...Object.keys(local.prefs)])){
+      const old=Object.hasOwn(base.prefs,key)?base.prefs[key]:absent,next=Object.hasOwn(local.prefs,key)?local.prefs[key]:absent;
+      const now=Object.hasOwn(remote.prefs,key)?remote.prefs[key]:absent;
+      if(equal(old,next)||equal(now,next))continue;
+      if(!equal(old,now))throw Error('Samtidig endring i samme innstilling.');
+      if(next===absent)delete out.prefs[key];else out.prefs[key]=JSON.parse(JSON.stringify(next));
+    }
+    return out;
+  }
   function mergeGuest(remote,guest){
     const output=JSON.parse(JSON.stringify(remote));
     for(const kind of ['meals','list','pantry','favorites']){
@@ -81,5 +119,5 @@
     if(!output.prefs.onboarded && guest.prefs?.onboarded)output.prefs=JSON.parse(JSON.stringify(guest.prefs));
     return output;
   }
-  return {types,normalized,date,weekStart,day,id,empty,icon,mealKey,suggested,reconcile,mergeGuest};
+  return {types,normalized,date,weekStart,day,id,empty,icon,mealKey,suggested,reconcile,mergeGuest,rebase};
 });
