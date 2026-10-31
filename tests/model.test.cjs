@@ -78,3 +78,13 @@ test('Monday-based weeks are deterministic',()=>{
  assert.equal(M.day(monday,0),'2026-10-26');
  assert.equal(M.day(monday,6),'2026-11-01');
 });
+
+test('Rebasing local pending edits keeps remote rows and local checkbox edits',()=>{
+ const base=M.empty();base.list=[{id:'x',name:'Ris',done:false}];
+ const local=JSON.parse(JSON.stringify(base));local.list[0].done=true;
+ const remote=JSON.parse(JSON.stringify(base));remote.list.push({id:'remote',name:'Melk',done:false});
+ const result=M.rebase(base,local,remote);
+ assert.equal(result.list.length,2);
+ assert.equal(result.list.find(x=>x.id==='x').done,true);
+ assert.equal(result.list.find(x=>x.id==='remote').name,'Melk');
+});
