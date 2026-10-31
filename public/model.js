@@ -72,13 +72,13 @@
     return result;
   }
   function mergeGuest(remote,guest){
-    const output=structuredClone(remote);
+    const output=JSON.parse(JSON.stringify(remote));
     for(const kind of ['meals','list','pantry','favorites']){
       const ids=new Set(output[kind].map(x=>x.id));
       // Match stable ID only. Never collapse two intended meals based on their title.
-      for(const item of guest[kind]||[]) if(!ids.has(item.id)){output[kind].push(structuredClone(item));ids.add(item.id);}
+      for(const item of guest[kind]||[]) if(!ids.has(item.id)){output[kind].push(JSON.parse(JSON.stringify(item)));ids.add(item.id);}
     }
-    if(!output.prefs.onboarded && guest.prefs?.onboarded)output.prefs=structuredClone(guest.prefs);
+    if(!output.prefs.onboarded && guest.prefs?.onboarded)output.prefs=JSON.parse(JSON.stringify(guest.prefs));
     return output;
   }
   return {types,normalized,date,weekStart,day,id,empty,icon,mealKey,suggested,reconcile,mergeGuest};
