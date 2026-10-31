@@ -1,63 +1,48 @@
-# SAVLY core journey (work branch)
+# SAVLY core journey — 31. oktober 2026
 
-Status: **development branch, not production verified**. Based on main commit `e764538ec570ec651d4e592710c9f478a4157ed4` (2026-10-02).
+Denne filen erstatter den opprinnelige arbeidsplanen. Se [README.md](README.md) for oppstart, konfigurering, sikkerhetskopiering og deploy.
 
-## What changed
-- Existing Python backend and original web UI retained.
-- SQLite-backed sessions: opaque bearer tokens stored as SHA-256 hashes; 30-day sliding expiration. Restart-safe **only if SAVLY_DB is on durable storage**.
-- Session cookie uses HttpOnly, SameSite=Lax, Secure on HTTPS and matching Max-Age.
-- Optional "Planlegg enkelt" journey in `public/core.js`, loaded by the existing HTML response. First-time preferences (household size, optional avoidance notes) stay local.
-- Meal entry and starter recipes, day planning, copy/move, portion adjustments, last week's plan reuse.
-- Deterministic meal emoji based on meal title, independent of ingredients.
-- Grocery generation with compatible kg/g and l/dl/ml summing, simple provenance, checkbox and "Har hjemme". Repeated imports do not add duplicates for generated items. Legacy list items are preserved.
+## Versjon og status
+- Utgangspunkt: commit `e764538ec570ec651d4e592710c9f478a4157ed4` på main.
+- Endret utviklingsgren: `feature/core-journey-2026-10-31`.
+- Ny startside er `/`, og gammel brukerflate bevares på `/legacy`.
+- Bare kode på GitHub. Ikke verifisert oppdatert Render-produksjon, ikke bekreftet App Store/Google Play.
 
-## Local startup
+## Implementert
+- Kort gjesteoppsett, mørkeblå/hvit visuell profil og fire hovedfaner.
+- Middager på ukedager, egne ingredienser, startoppskrifter, favoritter, kopiering, flytting, porsjoner og forrige ukes plan.
+- Automatisk handleliste fra valgte middager, kompatible enheter og proveniens, idempotent generering, manuelle varer, avkryssing, redigering og angre sletting.
+- Valgfritt kjøleskap/har hjemme og forslag basert på kjente varenavn. Uten automatisk lagerreduksjon.
+- Kassalapp via `price_gateway.py` og konfigurasjon, nøytrale produktbilder i ny brukerflate.
+- SQLite-baserte serverøkter og persisterte dokumenter for Google-kontoer, med autorisert husholdningsscope og revisjonskontroll.
+- Ikke-destruktiv overgang fra deler av gammel lokal lagring og gamle delte husstandsdata, med eksport/import.
 
-Python 3.10+ recommended.
-```bash
-python -m pip install -r requirements-google.txt
-export GOOGLE_CLIENT_ID="YOUR_GOOGLE_WEB_CLIENT_ID" # optional
-export KASSALAPP_API_KEY="YOUR_SECRET" # optional: prices disabled without this
-export SAVLY_DB="./savly.sqlite3"
-export PORT=8787
-python server.py
-```
-Open http://localhost:8787 and use **Planlegg enkelt**.
+## Automatisert verifikasjon
+- Python-testene dekker session-cookies, persistering, CSRF, husholdningsautorisasjon, konfliktavvisning og gammel husstandsdata.
+- Node-testene dekker ikoner, uforenlige mengder, porsjoner, idempotens, redigering og gjesteimport.
+- GitHub Actions tester med Chromium: onboarding, handleliste, varer hjemme, oppdatering etter reload, to middager og API-feil.
+- Se **Actions** for resultat knyttet til aktuell commit. Oppgi alltid om siste commit har grønn CI.
 
-Google Credential tokens must be configured for the same deployed origin. Never store Kassalapp keys in the browser.
+## Kritiske manuelle tester før produksjon
+- Google OAuth på fysisk iPhone Safari og Chrome Android med riktig offentlig origin.
+- Samme konto: iPhone ↔ PC og omstart/deploy med varig database.
+- To konti i delt husstand som gjør motstridende og uavhengige endringer.
+- Import av eksisterende reelle data fra produksjon, med backup før og etter.
+- Render persistent disk og ny/eldre databaseplassering.
+- Kjente allergier, prisdatoer og begrensninger, korrekt kontrakt med bildekilde.
+- Ingen ekte Pro-betaling eller abonnementsverifisering finnes.
 
-## Render storage safety
-**Do not deploy with the default DB path on ephemeral Render storage.**
-Configure a persistent Render disk (a plan that supports it), mount e.g. at `/var/data` and set:
-```
-SAVLY_DB=/var/data/savly.sqlite3
-SAVLY_PUBLIC_ORIGIN=https://YOUR-HOST
-```
-Back up the existing `savly.sqlite3` before changing paths or restarting production. An empty DB at a new path will look like account data loss. SQLite is suitable only with one durable shared writer; do not scale to multiple independent disks.
+## Uferdig
+- Ekte OAuth kan ikke endelig bekreftes uten domenekonfigurasjon og fysisk enhet.
+- Store oppskriftskataloger og kvitteringsskann er ikke gjeninnført i den nye hovedflyten. Den eldre siden ligger på /legacy.
+- Prisadapter kan utvides, men bare Kassalapp er implementert.
+- Telefonpublisering krever separat PWA-/wrapper-beslutning, native testing og juridiske krav.
+- Eldre data kan ha avvik som krever kontrollert migreringsjobb.
 
-## Known gaps and caveats
-- This change is **additive, not a completed navigation rewrite**. The legacy menu, onboarding, demo user mode and Pro prompts remain reachable. The focused journey is opened using "Planlegg enkelt".
-- Starter recipes are first-party illustrative ingredient lists, not scraped content.
-- Allergy/avoidance notes are locally stored; **there is no allergen validation**.
-- Guest-to-Google account merge, automatic background reconciliation when a meal changes, favorites, full quantity editing, delete undo and robust offline/multi-device migration are still unfinished.
-- Lists synchronize only through existing mechanisms, with current household conflict handling; do not assume every multi-device scenario is safe.
-- Browser reload and logged-in persistence still need end-to-end verification. Google Safari cookie retention and OAuth behavior have **not been device-tested**.
-- Prices still use the existing Kassalapp gateway; provider abstraction, membership terms, full pricing coverage and licensing for upstream images are not resolved.
-- The original app's `account.js` route exists in server routing but that file is not present in the inspected repository tree; diagnose any broken script references before launch.
-- No verified payment integration; never claim Pro is active or purchased.
-- The code has not been tested in iOS Safari or Android Chrome. Web app is not an App Store/Play Store release.
-
-## Manual acceptance checklist
-1. Start backend. Open as guest. Use Planlegg enkelt; set number of people, skip allergies. Add Taco.
-2. Generate the handleliste. Import twice; confirm no second generated row.
-3. Add Pasta med kjøttdeig. Same-unit kjøttdeig should total 800 g for two people with default portions.
-4. Add manual 'Toalettpapir'; regenerate and ensure it remains.
-5. Mark a generated item "Har hjemme"; regenerate and ensure the flag remains.
-6. Change portion input, regenerate, confirm recomputed quantity while manual items remain.
-7. Change day, copy meal, regenerate, confirm sources and totals. Delete meal; regenerate.
-8. Copy previous week and repeat operation; verify duplicates are avoided per day/title.
-9. Reload page, repeat checks. Test a Google login, then restart Python, and ensure /api/session returns the same user using saved cookie.
-10. Test house membership constraints, two device conflicts, and price API outage separately.
-
-## Deployment status
-Only committed on `feature/core-journey-2026-10-31`; **not merged to main and not published to Render**. No complete automated/browser test suite has run in this environment. Production deploy requires separate review and approval.
+## Akseptansekriterier for utrulling
+1. CI grønn på eksakt commit.
+2. Kopi av produksjonsdatabasen verifisert.
+3. Permanent datadisk konfigurert, med riktig path og rettigheter.
+4. Google innloggingsrunde testet på iPhone Safari, inkludert ny åpning av appen.
+5. Demo/Pro i gammel app behandles som eldre funksjonalitet; ny app viser ikke betaling.
+6. Først deretter manuell gjennomgang og publisering.
