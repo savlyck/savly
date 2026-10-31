@@ -96,6 +96,20 @@ class CoreStorageTests(unittest.TestCase):
             core_store.handle('GET',{},'savly_session='+other_token,None,'household')
         self.assertEqual(error.exception.status,403)
 
+    def test_preexisting_household_data_is_imported_without_deletion(self):
+        old = {'list':[{'id':'oldlist','name':'Melk','done':False}],
+               'fridge':[{'id':'oldfridge','name':'Poteter'}],
+               'meals':[{'id':'oldmeal','title':'Taco','date':'2026-10-31','type':'dinner'}]}
+        with households.connection() as db:
+            db.execute('INSERT INTO homes(id,name,size,owner,code,expires,data) VALUES(?,?,?,?,?,?,?)',
+                       ('home-legacy','Familien',2,self.user['id'],'ABCD123456',9999999999,json.dumps(old)))
+            db.execute('INSERT INTO members VALUES(?,?,?)',(self.user['id'],'home-legacy',1))
+        result,_ = core_store.handle('GET',{},self.cookie,None,'household')
+        self.assertEqual(result['data']['list'][0]['name'],'Melk')
+        self.assertEqual(result['data']['pantry'][0]['name'],'Poteter')
+        with households.connection() as db:
+            self.assertEqual(json.loads(db.execute('SELECT data FROM homes WHERE id=?',('home-legacy',)).fetchone()[0]),old)
+
     def test_invalid_preferences_are_rejected(self):
         data = copy.deepcopy(core_store.DEFAULT)
         data['prefs']['people'] = 'many'
