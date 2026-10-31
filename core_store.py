@@ -1,5 +1,6 @@
 """SAVLY v2 storage. Additive, per-account or authorized shared-household data."""
 import copy
+import hashlib
 import json
 import re
 import secrets
@@ -103,6 +104,47 @@ def _owner(db, user, scope):
         raise households.HouseholdError(403, 'Du tilhører ikke en delt husstand.')
     return 'home:' + home['id']
 
+def _legacy_shared(db, owner):
+    """Read old shared rows once, without modifying or deleting the legacy store."""
+    if not owner.startswith('home:'):
+        return None
+    home=db.execute('SELECT data,size FROM homes WHERE id=?',(owner[5:],)).fetchone()
+    if not home:
+        return None
+    try:
+        old=json.loads(home['data'])
+    except (TypeError, ValueError):
+        return None
+    if not any(old.get(k) for k in ('meals','list','fridge')):
+        return None
+    out=copy.deepcopy(DEFAULT)
+    out['prefs']={'people':home['size'],'allergies':[],'onboarded':True}
+    for old_name,new_name in [('meals','meals'),('list','list'),('fridge','pantry')]:
+        rows=old.get(old_name,[])
+        if not isinstance(rows,list):
+            continue
+        for index,item in enumerate(rows[:1000]):
+            if not isinstance(item,dict):
+                continue
+            field='title' if old_name=='meals' else 'name'
+            title=item.get(field)
+            if not isinstance(title,str) or not 1 <= len(title.strip()) <= 200:
+                continue
+            row=copy.deepcopy(item)
+            if not isinstance(row.get('id'),str) or not re.fullmatch(r'[\w-]{1,80}',row['id'],re.ASCII):
+                row['id']='legacy-'+hashlib.sha256((owner+old_name+str(index)).encode()).hexdigest()[:24]
+            if old_name=='meals':
+                if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',str(row.get('date',''))):
+                    continue
+                row['type']=row.get('type') or 'dinner'
+                row['ingredients']=row.get('ingredients') if isinstance(row.get('ingredients'),list) else []
+            out[new_name].append(row)
+    try:
+        validate(out)
+        return out
+    except households.HouseholdError:
+        return None
+
 def _view(db, owner):
     db.execute('''CREATE TABLE IF NOT EXISTS core_documents (
       owner TEXT PRIMARY KEY, data TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0
@@ -110,7 +152,7 @@ def _view(db, owner):
     row = db.execute('SELECT data, revision FROM core_documents WHERE owner=?', (owner,)).fetchone()
     if row:
         return {'data': json.loads(row['data']), 'revision': row['revision']}
-    return {'data': copy.deepcopy(DEFAULT), 'revision': 0}
+    return {'data': _legacy_shared(db,owner) or copy.deepcopy(DEFAULT), 'revision': 0}
 
 def handle(method, body, cookie, csrf, scope='personal'):
     token, sess = households.session(cookie)
