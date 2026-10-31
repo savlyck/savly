@@ -159,68 +159,105 @@ function render(){
  renderProfile();
 }
 function renderWelcome(){
- return '<h1>Planlegg middagen, handle det du trenger.</h1><p>Start med to enkle valg. Ingen konto eller betaling.</p>'+
+ return '<div class="page-intro"><span class="eyebrow">VELKOMMEN TIL SAVLY</span>'+
+ '<h1>Planlegg middagen, handle det du trenger.</h1>'+
+ '<p class="intro-copy">Mindre tid på å lure på hva du skal spise. Mer oversikt over det du faktisk trenger å handle.</p></div>'+
+ '<div class="welcome-layout"><div class="welcome-panel"><span class="eyebrow">KOM I GANG</span><h2>Det starter med én middag.</h2>'+
+ '<p class="help">To enkle valg nå, resten tar vi senere. Du trenger ingen konto.</p>'+
  '<label>Hvor mange personer?<input id="start-people" type="number" min="1" max="30" value="'+esc(doc.prefs.people)+'"></label>'+
- '<label>Allergier eller matvarer dere vil unngå (valgfritt)<input id="start-allergies" value="'+esc((doc.prefs.allergies||[]).join(', '))+'" placeholder="Kan hoppes over"></label>'+
- '<p class="help">Preferansene er bare hjelp til planlegging, ingen allergigaranti. Kontroller alltid innholdet i maten.</p>'+
- button('Velg første middag','onboard','','primary')+
- '<p class="help">Som gjest lagres innholdet på denne enheten. Opprett konto senere for synkronisering.</p>';
+ '<label>Allergier eller matvarer dere vil unngå (valgfritt)<input id="start-allergies" value="'+esc((doc.prefs.allergies||[]).join(', '))+'" placeholder="Hopp over hvis ingen"></label>'+
+ '<p class="help">Allergivalg gir aldri garanti for at en rett er trygg. Sjekk ingredienser og emballasje.</p>'+
+ button('Velg første middag →','onboard','','primary')+
+ '<p class="help" style="margin-top:16px;margin-bottom:0">Fortsett som gjest. Planene lagres på denne enheten.</p></div>'+
+ '<aside class="welcome-side" aria-hidden="true"><span class="eyebrow">ENKLERE HVERDAG</span><div class="meal-display">🍽️</div><div><h3>Fra middagsidé til ferdig handleliste.</h3><p>Én sammenhengende plan du kan bruke igjen neste uke.</p></div></aside></div>';
 }
 function renderHome(){
  const today=M.date(new Date()),todays=doc.meals.filter(x=>x.date===today&&(!x.type||x.type==='dinner'));
  const total=thisWeek().length;
- return '<h1>God dag! Hva skal vi spise?</h1>'+
- '<div class="card"><span class="pill">Dagens middag</span><h2>'+ (todays.length?todays.map(x=>M.icon(x.title)+' '+safeTitle(x)).join('<br>'):'Ingen middag planlagt')+'</h2>'+
- button('Planlegg uka','goto','data-tab="week"','primary')+'</div>'+
- '<div class="card"><span class="count">'+remaining()+'</span><p>varer gjenstår på handlelisten.</p>'+
- button('Åpne handleliste','goto','data-tab="list"')+'</div>'+
- (!total?'<div class="empty">Start med én middag, så bygger vi handlelisten derfra.<p>'+button('Legg inn første middag','open-add','','primary')+'</p></div>':
- '<p>'+total+' middag(er) planlagt denne uka. Du kan gjenbruke planen neste uke.</p>')+
- '<div class="actions">'+button('Har hjemme','pantry')+button('Favorittmiddager','goto','data-tab="week"')+'</div>'+
- '<p class="help">'+(identity?'Kontoen synkroniseres når du er på nett.':'Gjestedata lagres bare på enheten. Bruk profilikonet for å lagre i konto.')+'</p>';
+ const first=todays[0];
+ return '<div class="page-intro"><span class="eyebrow">DIN HVERDAG, LITT ENKLERE</span>'+
+ '<h1>God dag! Hva skal vi spise?</h1><p class="intro-copy">Alt du trenger til ukas middager, samlet på ett sted.</p></div>'+
+ '<div class="dashboard"><section class="hero-meal"><div class="hero-text"><span class="eyebrow">DAGENS MIDDAG</span>'+
+ '<div class="meal-emoji" aria-hidden="true">'+(first?M.icon(first.title):'🍽️')+'</div>'+
+ '<h2>'+(todays.length?todays.map(safeTitle).join(' · '):'Hva frister i dag?')+'</h2>'+
+ '<p>'+(todays.length?'Allerede lagt inn i ukeplanen din.':'Planlegg en middag, så hjelper SAVLY deg med resten.')+'</p></div>'+
+ button(todays.length?'Se ukeplanen →':'Planlegg middag →','goto','data-tab="week"')+'</section>'+
+ '<section class="card stat-card"><div><span class="eyebrow">DIN HANDLELISTE</span>'+
+ '<div class="stat-number">'+remaining()+'</div><p>varer igjen å handle</p></div>'+
+ button('Åpne liste →','goto','data-tab="list"')+'</section></div>'+
+ '<div class="section-header"><h2>Gjør hverdagen enklere</h2></div>'+
+ '<div class="quick-links"><div class="quick-link"><span class="quick-link__icon" aria-hidden="true">▦</span><div><strong>Ukeplan</strong>'+
+ '<small>'+(total?total+' middager denne uka':'Velg ukas første middag')+'</small></div>'+button('Åpne →','goto','data-tab="week"')+'</div>'+
+ '<div class="quick-link"><span class="quick-link__icon" aria-hidden="true">◫</span><div><strong>Har hjemme</strong>'+
+ '<small>Bruk maten du allerede har</small></div>'+button('Åpne →','pantry')+'</div></div>'+
+ (!total?'<div class="empty"><h3>En god uke begynner med en middag.</h3><p>Legg inn det du har lyst på. Handlelisten bygger seg opp etter hvert.</p>'+
+ button('Legg til middag →','open-add','','primary')+'</div>':'<p class="help">Du har '+total+' middag(er) i ukeplanen. Neste uke kan du gjenbruke planen med ett trykk.</p>')+
+ '<p class="help">'+(identity?'Endringer lagres på kontoen din når du er på nett.':'Du bruker SAVLY som gjest. Dine data lagres bare på denne enheten.')+'</p>';
 }
 function renderWeek(){
- const d=days(),meals=thisWeek();
- return '<h1>Ukeplan</h1><div class="date-nav">'+button('← Forrige','prev-week')+
- '<b>'+esc(d[0])+' til '+esc(d[6])+'</b>'+button('Neste →','next-week')+'</div>'+
- '<div class="actions">'+button('Legg til middag','open-add','','primary')+button('Gjenbruk forrige uke','repeat')+button('Oppdater handleliste','generate')+'</div>'+
- '<h2>Velg en oppskrift</h2><label>Legg oppskriften på dag<select id="preset-day">'+d.map((date,i)=>'<option value="'+i+'" '+(selectedDay===i?'selected':'')+'>'+['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'][i]+'</option>').join('')+'</select></label><p class="help">Enkle SAVLY-eksempler, ikke kopiert fra oppskriftssider.</p><div class="catalog">'+presets.map((r,i)=>button(M.icon(r.title)+' '+esc(r.title),'preset','data-index="'+i+'"')).join('')+'</div>'+
- '<h2>Favoritter</h2>'+(doc.favorites.length?'<div class="catalog">'+doc.favorites.map(x=>button(M.icon(x.title)+' '+safeTitle(x),'use-favorite','data-id="'+esc(x.id)+'"')).join('')+'</div>':'<p class="muted">Ingen favoritter lagret ennå.</p>')+
- d.map((date,i)=>'<section class="day"><div class="day-title"><h2>'+['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'][i]+'</h2>'+
- button('Legg til','open-add','data-date="'+date+'"')+'</div>'+
- (meals.filter(m=>m.date===date).map(m=>'<div class="card"><div class="row"><div class="name">'+M.icon(m.title)+' '+safeTitle(m)+
- '<div class="sub">'+(Number(m.portions)||1)+' porsjoner'+((m.ingredients||[]).length?' · '+m.ingredients.length+' ingredienser':' · Ingen ingredienser til handlelisten')+'</div></div>'+
- '<label class="checklabel"><input type="checkbox" data-include="'+esc(m.id)+'" '+(m.include===false?'':'checked')+'>Handle</label></div>'+
+ const d=days(),meals=thisWeek(),names=['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
+ return '<div class="page-intro"><span class="eyebrow">PLANLEGG MED OVERSIKT</span><h1>Ukeplan</h1>'+
+ '<p class="intro-copy">Velg middager for de dagene du vil, så setter vi sammen handlelisten.</p></div>'+
+ '<div class="date-nav">'+button('← Forrige','prev-week')+'<b>'+esc(d[0])+' – '+esc(d[6])+'</b>'+button('Neste →','next-week')+'</div>'+
+ '<div class="actions">'+button('＋ Legg til middag','open-add','','primary')+button('Gjenbruk forrige uke','repeat')+
+ button('Oppdater handleliste','generate','','secondary')+'</div>'+
+ '<div class="section-header"><div><span class="eyebrow">INSPIRASJON</span><h2>Velg en middag</h2></div></div>'+
+ '<label>Legg oppskriften på dag<select id="preset-day">'+d.map((date,i)=>'<option value="'+i+'" '+(selectedDay===i?'selected':'')+'>'+names[i]+'</option>').join('')+'</select></label>'+
+ '<p class="help">Enkle SAVLY-forslag med ingredienser. Ingen oppskrifter er kopiert fra eksterne nettsider.</p>'+
+ '<div class="catalog">'+presets.map((r,i)=>button('<span class="food-icon" aria-hidden="true">'+M.icon(r.title)+'</span><span>'+esc(r.title)+'</span>','preset','data-index="'+i+'"')).join('')+'</div>'+
+ (doc.favorites.length?'<div class="section-header"><h2>Favorittene dine</h2></div><div class="catalog">'+
+ doc.favorites.map(x=>button('<span class="food-icon" aria-hidden="true">'+M.icon(x.title)+'</span><span>'+safeTitle(x)+'</span>',
+ 'use-favorite','data-id="'+esc(x.id)+'"')).join('')+'</div>':'')+
+ '<div class="section-header"><div><span class="eyebrow">DENNE UKA</span><h2>Din middagsplan</h2></div><span class="pill">'+meals.length+' middager</span></div>'+
+ d.map((date,i)=>'<section class="day"><div class="day-title"><h2>'+names[i]+'</h2>'+button('＋ Legg til','open-add','data-date="'+date+'"')+'</div>'+
+ (meals.filter(m=>m.date===date).map(m=>'<div class="card"><div class="row"><div class="meal-title-content">'+
+ '<span class="meal-avatar" aria-hidden="true">'+M.icon(m.title)+'</span><div class="name">'+safeTitle(m)+
+ '<div class="sub">'+(Number(m.portions)||1)+' porsjoner'+((m.ingredients||[]).length?' · '+m.ingredients.length+' ingredienser':' · Ingen ingredienser registrert')+'</div></div></div>'+
+ '<label class="checklabel"><input type="checkbox" data-include="'+esc(m.id)+'" '+(m.include===false?'':'checked')+'>Til handleliste</label></div>'+
  '<div class="item-actions">'+button('Rediger','edit-meal','data-id="'+esc(m.id)+'"')+
  button('Kopier','copy-meal','data-id="'+esc(m.id)+'"')+button('Flytt','move-meal','data-id="'+esc(m.id)+'"')+
  button('☆ Favoritt','favorite','data-id="'+esc(m.id)+'"')+button('Slett','delete-meal','data-id="'+esc(m.id)+'"','danger')+'</div></div>').join('')||
- '<p class="muted">Ingen middag denne dagen.</p>')+'</section>').join('')+
- '<p class="help">Velg «Handle» på middagene som skal bidra til ukas handleliste.</p>';
+ '<div class="day-empty">Ingen middag lagt inn</div>')+'</section>').join('')+
+ '<p class="help">Middagene du huker av, bidrar til handlelisten når du oppdaterer den.</p>';
 }
 function renderList(){
  const rows=doc.list;
  const generated=rows.filter(x=>x.source==='generated').length;
- return '<h1>Handleliste</h1><p>'+remaining()+' varer gjenstår. '+generated+' fra middagsplanen.</p>'+
- '<div class="actions">'+button('Oppdater fra ukeplan','generate','','primary')+button('Har hjemme','pantry')+'</div>'+
- '<form id="add-item"><label>Legg til egen vare<input id="new-item" maxlength="200" required placeholder="F.eks. melk"></label><button class="primary" type="submit">Legg til</button></form>'+
- (rows.length?rows.map(x=>'<div class="row"><label class="checklabel" style="flex:1"><input type="checkbox" data-done="'+esc(x.id)+'" '+(x.done?'checked':'')+'><span class="'+(x.done?'checked':'')+'"><strong>'+esc(x.name)+'</strong><span class="sub" style="display:block">'+
+ const left=remaining(),all=rows.length;
+ return '<div class="page-intro"><span class="eyebrow">ALT PÅ ETT STED</span><h1>Handleliste</h1>'+
+ '<p class="intro-copy">Fra middagsplan til en oversikt du faktisk kan stole på.</p></div>'+
+ '<div class="list-banner"><div><span class="eyebrow" style="color:#c5d8f5">KLAR TIL HANDLING</span>'+
+ '<h2>'+left+' '+(left===1?'vare':'varer')+' gjenstår</h2><p>'+generated+' varer hentet fra middagsplanen</p></div>'+
+ '<div class="progress-ring" aria-label="'+(all?all-left:0)+' av '+all+' varer håndtert">'+(all?Math.round((all-left)/all*100):0)+'%</div></div>'+
+ '<div class="actions">'+button('↻ Oppdater fra ukeplan','generate','','primary')+button('Har hjemme','pantry')+'</div>'+
+ '<form id="add-item" class="inline-form"><label>Legg til en vare<input id="new-item" maxlength="200" required placeholder="F.eks. melk, bananer eller brød"></label>'+
+ '<button class="primary" type="submit">＋ Legg til</button></form>'+
+ (rows.length?'<div class="section-header"><h2>Varene dine</h2><span class="pill">'+all+' totalt</span></div><div class="item-list">'+
+ rows.map(x=>'<div class="row"><label class="checklabel" style="flex:1"><input type="checkbox" data-done="'+esc(x.id)+'" '+(x.done?'checked':'')+'>'+
+ '<span class="'+(x.done?'checked':'')+'"><strong>'+esc(x.name)+'</strong><span class="sub" style="display:block">'+
  esc(x.quantity==null?(x.details||'Ukjent mengde'):x.quantity+' '+(x.unit||''))+
- (x.originNames?.length?' · Til '+esc(x.originNames.join(', ')):'')+(x.orphaned?' · Ikke lenger i ukeplanen':'')+'</span></span></label>'+
+ (x.originNames?.length?' · Til '+esc(x.originNames.join(', ')):'')+
+ (x.orphaned?' · Ikke lenger i ukeplanen':'')+'</span></span></label>'+
  '<div class="item-actions">'+button(x.haveHome?'Hjemme ✓':'Har hjemme','have-home','data-id="'+esc(x.id)+'"')+
- button('Endre','edit-item','data-id="'+esc(x.id)+'"')+
- button('Slett','delete-item','data-id="'+esc(x.id)+'"','danger')+'</div></div>').join(''):'<div class="empty">Ingen varer ennå. Velg en middag i ukeplanen eller legg til noe her.</div>');
+ button('Endre','edit-item','data-id="'+esc(x.id)+'"')+button('Slett','delete-item','data-id="'+esc(x.id)+'"','danger')+'</div></div>').join('')+
+ '</div>':'<div class="empty"><h3>Handlelisten er tom</h3><p>Legg til en vare selv, eller hent ingredienser fra ukeplanen.</p>'+
+ button('Gå til ukeplan →','goto','data-tab="week"','primary')+'</div>');
 }
 function renderSearch(){
- return '<h1>Søk etter butikkvarer</h1><p class="help">Priser fra Kassalapp når datakilden er tilgjengelig. En kjedepris er ikke garantert i din lokale butikk. Ingen oppdiktede priser.</p>'+
- '<form id="product-search"><label>Hva leter du etter?<input id="product-query" minlength="3" maxlength="100" required value="'+esc(searchText)+'" placeholder="F.eks. melk"></label><button class="primary">Søk etter produkt</button></form>'+
- (searchBusy?'<p role="status">Henter produkter …</p>':searchError?'<p role="alert">'+esc(searchError)+' '+button('Prøv igjen','retry-search')+'</p>':
- searchResults.length?searchResults.map((p,i)=>'<div class="row"><div class="icon">'+'🛒'+'</div>'+
+ return '<div class="page-intro"><span class="eyebrow">KJENN PRISEN FØR DU HANDLER</span><h1>Søk etter matvarer</h1>'+
+ '<p class="intro-copy">Finn relevante butikkvarer. Vi viser bare registrerte priser fra tilgjengelige kilder.</p></div>'+
+ '<form id="product-search"><label>Søk i matvarer<input id="product-query" minlength="3" maxlength="100" required value="'+esc(searchText)+'" placeholder="Hva trenger du? F.eks. melk"></label>'+
+ '<button class="primary">Søk etter produkt →</button></form>'+
+ '<p class="help">Priser fra Kassalapp der datakilden har treff. Kjedenivå er ikke nødvendigvis din lokale butikk, og datagrunnlaget kan være ufullstendig.</p>'+
+ (searchBusy?'<div class="empty" role="status">Henter produkter fra priskilden …</div>':searchError?
+ '<div class="empty" role="alert"><h3>Vi fikk ikke hentet priser akkurat nå</h3><p>'+esc(searchError)+'</p>'+button('Prøv igjen','retry-search')+'</div>':
+ searchResults.length?'<div class="item-list">'+searchResults.map((p,i)=>'<div class="row"><div class="meal-avatar" aria-hidden="true">▦</div>'+
  '<div class="name">'+esc(p.name)+'<div class="sub">'+esc(p.weight?(p.weight+' '+(p.unit||'')):'Ukjent pakning')+' · '+esc(p.store||'Ukjent butikk')+'<br>'+
  (Number.isFinite(p.price)?Number(p.price).toFixed(2)+' kr':'Pris mangler')+
  (Number.isFinite(p.unitPrice)?' · '+Number(p.unitPrice).toFixed(2)+' kr/enhet':'')+
  ' · Prisdato: '+esc(p.priceDate||'ukjent')+'</div></div>'+
- button('Legg til','add-product','data-index="'+i+'"')+'</div>').join(''):
- '<div class="empty">Søk etter et konkret produkt. Ukeplan og handleliste fungerer også når pris-API-et er nede.</div>');
+ button('Legg til','add-product','data-index="'+i+'"')+'</div>').join('')+'</div>':
+ '<div class="empty"><h3>Hva ser du etter?</h3><p>Skriv et produktnavn for å søke. Ukeplanen og handlelisten fungerer også når prissøket er utilgjengelig.</p></div>');
 }
 function renderProfile(){
  const host=$('profile-body');if(!host)return;
