@@ -105,6 +105,15 @@ class CoreStorageTests(unittest.TestCase):
 
 
 class HTTPTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        households.DB_PATH = os.path.join(self.temp.name, 'savly.sqlite3')
+        households.INITIALIZED = False
+        households.init_db()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
     def test_guest_app_and_security(self):
         from http.server import ThreadingHTTPServer
         host = ThreadingHTTPServer(('127.0.0.1', 0), server.Handler)
