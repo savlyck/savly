@@ -70,7 +70,10 @@ async function sync(){
   const result=await request('/api/core?scope='+encodeURIComponent(scope),{data:sent,base:serverBase,revision});
   revision=result.revision;serverBase=deep(result.data);
   if(changes===current){doc=deep(result.data);dirty=false;localWrite(cacheKey(),doc);clearNotice();setStatus('Synkronisert');render();}
-  else {saveTimer=setTimeout(sync,50);}
+  else {
+   try{doc=M.rebase(sent,doc,result.data);localWrite(cacheKey(),doc);saveTimer=setTimeout(sync,50);}
+   catch(err){notice(err.message+' Dine lokale endringer er beholdt.');}
+  }
  }catch(e){
   setStatus('Ikke synkronisert');if(e.status===409)notice('Samtidig redigering oppdaget. Dine lokale endringer er beholdt. Eksporter dem før du henter serverversjonen.');else failed(e);
  }finally{busy=false;if(dirty&&changes!==current)setTimeout(sync,200);}
