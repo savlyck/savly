@@ -1,0 +1,48 @@
+const {test,expect}=require('@playwright/test');
+const url='http://127.0.0.1:8787/app';
+test('New guest -> first dinner -> shared ingredients -> editable shopping list survives reload',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(url);
+ await expect(page.getByRole('heading',{name:'Planlegg middagen, handle det du trenger.'})).toBeVisible();
+ await page.locator('#start-people').fill('2');
+ await page.getByRole('button',{name:'Velg første middag'}).click();
+ await expect(page.getByRole('heading',{name:'Ukeplan'})).toBeVisible();
+ await page.getByRole('button',{name:/Taco/}).first().click();
+ await page.locator('#tabs [data-tab=list]').click();
+ await expect(page.locator('#main .row')).toHaveCount(4);
+ await page.getByRole('button',{name:'Oppdater fra ukeplan'}).click();
+ await expect(page.locator('#main .row')).toHaveCount(4);
+ await page.locator('#main [data-have-home]').first().click();
+ await expect(page.getByText('Hjemme ✓')).toBeVisible();
+ await page.reload();
+ await page.locator('#tabs [data-tab=list]').click();
+ await expect(page.locator('#main .row')).toHaveCount(4);
+ await expect(page.locator('#main [data-have-home]').first()).toHaveText('Hjemme ✓');
+ await page.locator('#new-item').fill('Såpe');
+ await page.locator('#add-item button').click();
+ await expect(page.locator('#main .row')).toHaveCount(5);
+ await page.getByRole('button',{name:'Oppdater fra ukeplan'}).click();
+ await expect(page.locator('#main .row')).toHaveCount(5);
+});
+test('Two meals consolidate compatible quantities and scale portions',async({page})=>{
+ await page.goto(url);
+ await page.locator('#start-people').fill('2');
+ await page.getByRole('button',{name:'Velg første middag'}).click();
+ await page.getByRole('button',{name:/Taco/}).first().click();
+ await page.getByRole('button',{name:/Pasta med kjøttdeig/}).first().click();
+ await page.locator('#tabs [data-tab=list]').click();
+ await expect(page.locator('#main .row')).toHaveCount(6);
+ await expect(page.getByText('800 g',{exact:false})).toBeVisible();
+});
+test('Price API failure does not remove the meal plan',async({page})=>{
+ await page.goto(url);
+ await page.locator('#start-people').fill('1');
+ await page.getByRole('button',{name:'Velg første middag'}).click();
+ await page.getByRole('button',{name:/Taco/}).first().click();
+ await page.locator('#tabs [data-tab=search]').click();
+ await page.locator('#product-query').fill('melk');
+ await page.locator('#product-search button').click();
+ await expect(page.getByText(/API-nøkkel mangler|Prissøket|Kunne ikke hente/)).toBeVisible();
+ await page.locator('#tabs [data-tab=list]').click();
+ await expect(page.locator('#main .row')).toHaveCount(4);
+});
