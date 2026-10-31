@@ -143,6 +143,16 @@ async function logout(){
  identity=null;scope='personal';serverBase=null;revision=0;dirty=false;doc=migrateGuest();session=await request('/api/session');
  $('profile').close();render();
 }
+
+function uiIcon(name){
+ const paths={
+  week:'<rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 15h8"/>',
+  pantry:'<path d="M4 7.5h16v13H4zM3 4h18v3.5H3zM8 12h8M8 16h5"/>',
+  product:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>'
+ };
+ return '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.product)+'</svg>';
+}
+
 function safeTitle(x){return esc(x.title||x.name||'');}
 function button(text,action,details='',cls=''){return '<button type="button" data-action="'+action+'" '+details+' class="'+cls+'">'+text+'</button>';}
 function render(){
@@ -186,9 +196,9 @@ function renderHome(){
  '<div class="stat-number">'+remaining()+'</div><p>varer igjen å handle</p></div>'+
  button('Åpne liste →','goto','data-tab="list"')+'</section></div>'+
  '<div class="section-header"><h2>Gjør hverdagen enklere</h2></div>'+
- '<div class="quick-links"><div class="quick-link"><span class="quick-link__icon" aria-hidden="true">▦</span><div><strong>Ukeplan</strong>'+
+ '<div class="quick-links"><div class="quick-link"><span class="quick-link__icon" aria-hidden="true">'+uiIcon('week')+'</span><div><strong>Ukeplan</strong>'+
  '<small>'+(total?total+' middager denne uka':'Velg ukas første middag')+'</small></div>'+button('Åpne →','goto','data-tab="week"')+'</div>'+
- '<div class="quick-link"><span class="quick-link__icon" aria-hidden="true">◫</span><div><strong>Har hjemme</strong>'+
+ '<div class="quick-link"><span class="quick-link__icon" aria-hidden="true">'+uiIcon('pantry')+'</span><div><strong>Har hjemme</strong>'+
  '<small>Bruk maten du allerede har</small></div>'+button('Åpne →','pantry')+'</div></div>'+
  (!total?'<div class="empty"><h3>En god uke begynner med en middag.</h3><p>Legg inn det du har lyst på. Handlelisten bygger seg opp etter hvert.</p>'+
  button('Legg til middag →','open-add','','primary')+'</div>':'<p class="help">Du har '+total+' middag(er) i ukeplanen. Neste uke kan du gjenbruke planen med ett trykk.</p>')+
@@ -251,7 +261,7 @@ function renderSearch(){
  '<p class="help">Priser fra Kassalapp der datakilden har treff. Kjedenivå er ikke nødvendigvis din lokale butikk, og datagrunnlaget kan være ufullstendig.</p>'+
  (searchBusy?'<div class="empty" role="status">Henter produkter fra priskilden …</div>':searchError?
  '<div class="empty" role="alert"><h3>Vi fikk ikke hentet priser akkurat nå</h3><p>'+esc(searchError)+'</p>'+button('Prøv igjen','retry-search')+'</div>':
- searchResults.length?'<div class="item-list">'+searchResults.map((p,i)=>'<div class="row"><div class="meal-avatar" aria-hidden="true">▦</div>'+
+ searchResults.length?'<div class="item-list">'+searchResults.map((p,i)=>'<div class="row"><div class="meal-avatar" aria-hidden="true">'+uiIcon('product')+'</div>'+
  '<div class="name">'+esc(p.name)+'<div class="sub">'+esc(p.weight?(p.weight+' '+(p.unit||'')):'Ukjent pakning')+' · '+esc(p.store||'Ukjent butikk')+'<br>'+
  (Number.isFinite(p.price)?Number(p.price).toFixed(2)+' kr':'Pris mangler')+
  (Number.isFinite(p.unitPrice)?' · '+Number(p.unitPrice).toFixed(2)+' kr/enhet':'')+
