@@ -122,7 +122,7 @@ class HTTPTests(unittest.TestCase):
         try:
             base = 'http://127.0.0.1:' + str(host.server_port)
             opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-            for path in ('/app', '/app.js', '/model.js', '/app.css'):
+            for path in ('/', '/app', '/legacy', '/app.js', '/model.js', '/app.css'):
                 with opener.open(base + path, timeout=5) as response:
                     self.assertEqual(response.status, 200)
                     self.assertGreater(len(response.read()), 100)
