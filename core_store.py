@@ -35,7 +35,7 @@ def validate(data):
                 if not isinstance(item.get('ingredients', []), list) or len(item.get('ingredients', [])) > 100:
                     raise households.HouseholdError(400, 'For mange ingredienser.')
     prefs = data['prefs']
-    if not isinstance(prefs, dict) or not 1 <= prefs.get('people', 0) <= 30 or type(prefs.get('people')) is not int:
+    if not isinstance(prefs, dict) or type(prefs.get('people')) is not int or not 1 <= prefs['people'] <= 30:
         raise households.HouseholdError(400, 'Ugyldig antall personer.')
     if not isinstance(prefs.get('allergies', []), list) or len(prefs['allergies']) > 30 or any(not isinstance(a, str) or len(a) > 100 for a in prefs['allergies']):
         raise households.HouseholdError(400, 'Ugyldige preferanser.')
