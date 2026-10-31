@@ -5,6 +5,7 @@ from pathlib import Path
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import households
+import core_store
 
 ROOT = Path(__file__).resolve().parent / 'public'
 STORES = {'REMA_1000':'rem','KIWI':'kiwi','COOP_OBS':'obs','COOP_EXTRA':'extra','MENY_NO':'meny','SPAR_NO':'spar','BUNNPRIS':'bunnpris','JOKER_NO':'joker','COOP_MEGA':'mega','COOP_PRIX':'prix','COOP_MARKED':'marked','MATKROKEN':'matkroken','NAERBUTIKKEN':'narbutikken','HOLDBART':'holdbart'}
@@ -338,7 +339,12 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.send(415,{'error':'Forventet JSON.'})
             body=json.loads(self.rfile.read(length))
             if not isinstance(body,dict):return self.send(400,{'error':'Ugyldig forespørsel.'})
-            return self.household('POST',urlsplit(self.path).path,body)
+            part=urlsplit(self.path)
+            if part.path=='/api/core':
+                data,token=core_store.handle('POST',body,self.headers.get('Cookie'),self.headers.get('X-SAVLY-CSRF'),parse_qs(part.query).get('scope',['personal'])[0])
+                self.session_token=token
+                return self.send(200,data)
+            return self.household('POST',part.path,body)
         except households.HouseholdError as e:return self.send(e.status,{'error':e.message,'code':e.code})
         except (ValueError,TypeError):return self.send(400,{'error':'Ugyldige data.'})
         except Exception:return self.send(500,{'error':'Kunne ikke lagre endringen. Prøv igjen.'})
@@ -346,9 +352,13 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_origin():return self.send(403,{'error':'Ugyldig opphav.'})
         part=urlsplit(self.path)
         try:
+            if part.path=='/api/core':
+                data,token=core_store.handle('GET',{},self.headers.get('Cookie'),None,parse_qs(part.query).get('scope',['personal'])[0])
+                self.session_token=token
+                return self.send(200,data)
             if part.path in ('/api/session','/api/household','/api/account'):return self.household('GET',part.path,{})
             if part.path.startswith('/api/'):return self.send(200,api(part.path,parse_qs(part.query)))
-            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/account.js':('account.js','text/javascript; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/core.js':('core.js','text/javascript; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
+            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/app':('app.html','text/html; charset=utf-8'),'/app.html':('app.html','text/html; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/app.css':('app.css','text/css; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/account.js':('account.js','text/javascript; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/core.js':('core.js','text/javascript; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
             if part.path not in files:return self.send(404,{'error':'Fant ikke siden.'})
             name,kind=files[part.path]
             raw=(ROOT/name).read_bytes()
