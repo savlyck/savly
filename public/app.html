@@ -1,25 +1,59 @@
 <!doctype html>
-<html lang="nb"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#10274d"><meta name="description" content="Planlegg middager, bruk maten du har og handle smartere med SAVLY.">
-<title>SAVLY · Matplan og handleliste</title><link rel="stylesheet" href="/app.css">
-</head><body>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="SAVLY gjør middagsplanlegging og handling enkelt.">
+<title>SAVLY | Din mat, litt smartere</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
 <div class="shell">
-<header class="header"><div><span class="brand">SAVLY</span><span class="brand-desc">Middag og handling gjort enkelt</span></div>
-<button id="profile-button" aria-label="Åpne profil og innstillinger" type="button"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-5 16-5 16 0"/></svg></button></header>
+<header class="header">
+  <a class="identity" href="/" aria-label="SAVLY, hjem">
+    <img class="brand-logo" src="/savly_wordmark_blue.png" alt="SAVLY" width="144" height="44">
+    <span class="brand-fallback">SAVLY</span>
+  </a>
+  <div class="header-actions">
+    <span class="header-promise">Matplanlegging, gjort enkelt.</span>
+    <button id="profile-button" class="profile-trigger" aria-label="Profil og innstillinger" title="Profil og innstillinger" type="button">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M4.8 20c.9-3.5 4-5.2 7.2-5.2s6.3 1.7 7.2 5.2"/></svg>
+    </button>
+  </div>
+</header>
 <div id="notice" role="status" aria-live="polite" hidden></div>
-<main id="main" tabindex="-1"><p>Åpner planleggeren …</p></main>
+<main id="main" tabindex="-1"><p>Åpner SAVLY …</p></main>
 <nav id="tabs" aria-label="Hovednavigasjon">
-<button data-tab="home" aria-current="page">⌂ <span>Hjem</span></button>
-<button data-tab="week">▦ <span>Ukeplan</span></button>
-<button data-tab="list">☑ <span>Handleliste</span></button>
-<button data-tab="search">⌕ <span>Søk</span></button></nav></div>
-<dialog id="profile"><div class="dialog-top"><h2>Profil og innstillinger</h2><button data-action="close-profile" aria-label="Lukk profil">✕</button></div><div id="profile-body"></div></dialog>
-<dialog id="editor"><div class="dialog-top"><h2 id="editor-title">Middag</h2><button data-action="close-editor" aria-label="Lukk">✕</button></div><form id="meal-form">
-<label>Navn på middag<input id="meal-title" required maxlength="200" autocomplete="off" placeholder="F.eks. taco"></label>
-<label>Dag<select id="meal-date"></select></label><label>Antall porsjoner<input id="meal-portions" type="number" min="1" max="30" value="2" required></label>
-<label>Ingredienser, én per linje <small>Skriv f.eks. 400 g kjøttdeig. Kan stå tomt.</small><textarea id="meal-ingredients" rows="6" placeholder="400 g kjøttdeig&#10;6 stk tortillalefser"></textarea></label>
-<p class="help">Uklare mengder beholdes som tekst. Ingen gjetting.</p>
-<button type="submit" class="primary">Lagre middag</button></form></dialog>
+  <button data-tab="home" aria-current="page" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Hjem</span>
+  </button>
+  <button data-tab="week" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 15h3M14 15h2"/></svg><span>Ukeplan</span>
+  </button>
+  <button data-tab="list" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="m8 9 1.8 1.8 3-3M14.5 9H17M8 16h9"/></svg><span>Handleliste</span>
+  </button>
+  <button data-tab="search" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.8"/><path d="m16 16 5 5"/></svg><span>Søk</span>
+  </button>
+</nav>
+</div>
+<dialog id="profile" aria-label="Profil og innstillinger">
+  <div class="dialog-top"><h2>Din profil</h2><button data-action="close-profile" aria-label="Lukk profil">✕</button></div>
+  <div id="profile-body"></div>
+</dialog>
+<dialog id="editor" aria-label="Rediger middag">
+  <div class="dialog-top"><div><span class="eyebrow">UKEPLAN</span><h2 id="editor-title">Middag</h2></div><button data-action="close-editor" aria-label="Lukk">✕</button></div>
+  <form id="meal-form">
+    <label>Navn på middag<input id="meal-title" required maxlength="200" autocomplete="off" placeholder="F.eks. taco"></label>
+    <label>Dag<select id="meal-date"></select></label>
+    <label>Antall porsjoner<input id="meal-portions" type="number" min="1" max="30" value="2" required></label>
+    <label>Ingredienser <small>En per linje. Du kan også legge dem inn senere.</small><textarea id="meal-ingredients" rows="5" placeholder="400 g kjøttdeig&#10;6 stk tortillalefser"></textarea></label>
+    <p class="help">Ukjente mengder blir stående som tekst. Ingenting blir gjettet.</p>
+    <button type="submit" class="primary">Lagre middag <span aria-hidden="true">→</span></button>
+  </form>
+</dialog>
 <script defer src="/model.js"></script><script defer src="/app.js"></script>
-</body></html>
+</body>
+</html>
