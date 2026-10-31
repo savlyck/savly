@@ -82,3 +82,19 @@ test('Account-backed content survives reload and concurrent devices merge their 
   await expect(second.getByText('Såpe',{exact:true})).toBeVisible();
  }finally{await one.close();await two.close();}
 });
+
+test('Standalone HTML can be opened without server and build a grocery list',async({page})=>{
+ const {pathToFileURL}=require('node:url');
+ const {resolve}=require('node:path');
+ await page.goto(pathToFileURL(resolve(__dirname,'../SAVLY-forhandsvisning.html')).href);
+ await expect(page.getByRole('heading',{name:'Planlegg middagen, handle det du trenger.'})).toBeVisible();
+ await page.locator('#start-people').fill('2');
+ await page.getByRole('button',{name:'Velg første middag'}).click();
+ await page.getByRole('button',{name:/Taco/}).first().click();
+ await page.locator('#tabs [data-tab=list]').click();
+ await expect(page.locator('#main .row')).toHaveCount(4);
+ await page.locator('#tabs [data-tab=search]').click();
+ await page.locator('#product-query').fill('melk');
+ await page.locator('#product-search button').click();
+ await expect(page.getByText(/Prissøk krever SAVLY-serveren/)).toBeVisible();
+});
