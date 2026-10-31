@@ -107,8 +107,8 @@ document.addEventListener('change',e=>{
  if(e.target.dataset.portions){let x=state.meals.find(x=>x.id===e.target.dataset.portions),n=Number(e.target.value);if(x&&Number.isInteger(n)&&n>0&&n<=30){x.portions=n;saveMeals();render();}return;}
 });
 const style=document.createElement('style');style.textContent=`
-#savly-core-launch{position:fixed;right:14px;bottom:90px;z-index:998;background:#132a55;color:white;border:0;border-radius:24px;padding:13px 18px;box-shadow:0 5px 24px #0003;font-weight:700}
-#savly-core-app{position:fixed;inset:0;z-index:9999;background:#f7f9fc;color:#132a55;overflow:auto;font:16px system-ui}
+#savly-core-launch{position:fixed;right:14px;bottom:90px;z-index:2147483640;background:#132a55;color:white;border:0;border-radius:24px;padding:13px 18px;box-shadow:0 5px 24px #0003;font-weight:700}
+#savly-core-app{position:fixed;inset:0;z-index:2147483641;background:#f7f9fc;color:#132a55;overflow:auto;font:16px system-ui}
 #savly-core-app[hidden],#savly-core-launch[hidden]{display:none!important}
 #savly-core-app header{display:flex;justify-content:space-between;align-items:center;background:#132a55;color:white;padding:18px}
 #savly-core-app main{max-width:640px;margin:0 auto;padding:20px 20px 100px}
