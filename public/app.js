@@ -211,7 +211,7 @@ function renderSearch(){
  return '<h1>Søk etter butikkvarer</h1><p class="help">Priser fra Kassalapp når datakilden er tilgjengelig. En kjedepris er ikke garantert i din lokale butikk. Ingen oppdiktede priser.</p>'+
  '<form id="product-search"><label>Hva leter du etter?<input id="product-query" minlength="3" maxlength="100" required value="'+esc(searchText)+'" placeholder="F.eks. melk"></label><button class="primary">Søk etter produkt</button></form>'+
  (searchBusy?'<p role="status">Henter produkter …</p>':searchError?'<p role="alert">'+esc(searchError)+' '+button('Prøv igjen','retry-search')+'</p>':
- searchResults.length?searchResults.map((p,i)=>'<div class="row"><div class="icon">'+(p.image&&p.image.startsWith('https://')?'<img src="'+esc(p.image)+'" alt="" loading="lazy" width="60" height="60" onerror="this.outerHTML=\\'🛒\\'">':'🛒')+'</div>'+
+ searchResults.length?searchResults.map((p,i)=>'<div class="row"><div class="icon">'+(p.image&&p.image.startsWith('https://')?'<img src="'+esc(p.image)+'" alt="" loading="lazy" width="60" height="60" onerror="this.hidden=true">':'🛒')+'</div>'+
  '<div class="name">'+esc(p.name)+'<div class="sub">'+esc(p.weight?(p.weight+' '+(p.unit||'')):'Ukjent pakning')+' · '+esc(p.store||'Ukjent butikk')+'<br>'+
  (Number.isFinite(p.price)?Number(p.price).toFixed(2)+' kr':'Pris mangler')+
  (Number.isFinite(p.unitPrice)?' · '+Number(p.unitPrice).toFixed(2)+' kr/enhet':'')+
