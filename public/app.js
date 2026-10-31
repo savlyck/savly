@@ -36,7 +36,7 @@ function migrateGuest(){
  localWrite(guestKey,base);return base;
 }
 let doc=migrateGuest(),session=null,identity=null,scope='personal',home=null;
-let serverBase=null,revision=0,dirty=false,busy=false,saveTimer=0,changes=0;
+let serverBase=null,revision=0,dirty=false,busy=false,syncBlocked=false,saveTimer=0,changes=0;
 let tab='home',weekOffset=0,selectedDay=0,editing=null,searchResults=[],searchText='',searchBusy=false,searchError='';
 let undo=null,authenticatedReady=false;
 function range(){let d=M.weekStart(new Date());d.setDate(d.getDate()+7*weekOffset);return {first:M.day(d,0),last:M.day(d,6),monday:d};}
@@ -64,7 +64,7 @@ function changed(){
 function setStatus(message){const el=$('sync-status');if(el)el.textContent=message;}
 function regenerate(){const {first,last}=range();doc.list=M.reconcile(doc.list,M.suggested(doc.meals.filter(x=>x.include!==false),first,last));}
 async function sync(){
- if(!identity||busy||!dirty)return;
+ if(!identity||busy||!dirty||syncBlocked)return;
  busy=true;const current=changes,sent=deep(doc);
  try{
   const result=await request('/api/core?scope='+encodeURIComponent(scope),{data:sent,base:serverBase,revision});
@@ -72,11 +72,11 @@ async function sync(){
   if(changes===current){doc=deep(result.data);dirty=false;localWrite(cacheKey(),doc);clearNotice();setStatus('Synkronisert');render();}
   else {
    try{doc=M.rebase(sent,doc,result.data);localWrite(cacheKey(),doc);saveTimer=setTimeout(sync,50);}
-   catch(err){notice(err.message+' Dine lokale endringer er beholdt.');}
+   catch(err){syncBlocked=true;notice(err.message+' Dine lokale endringer er beholdt.');}
   }
  }catch(e){
-  setStatus('Ikke synkronisert');if(e.status===409)notice('Samtidig redigering oppdaget. Dine lokale endringer er beholdt. Eksporter dem før du henter serverversjonen.');else failed(e);
- }finally{busy=false;if(dirty&&changes!==current)setTimeout(sync,200);}
+  setStatus('Ikke synkronisert');if(e.status===409){syncBlocked=true;notice('Samtidig redigering oppdaget. Dine lokale endringer er beholdt. Eksporter dem før du henter serverversjonen.');}else failed(e);
+ }finally{busy=false;if(dirty&&changes!==current&&!syncBlocked)setTimeout(sync,200);}
 }
 function adoptLegacyAccount(data){
  if(!data?.personal)return M.empty();
@@ -100,7 +100,7 @@ async function enterCloud(user,oldAccount){
  const emptyCloud=data.revision===0 && !source.meals.length&&!source.list.length&&!source.pantry.length;
  const base=emptyCloud?M.mergeGuest(source,legacy):source;
  const merged=M.mergeGuest(base,guest);
- serverBase=deep(source);revision=data.revision;doc=merged;
+ serverBase=deep(source);revision=data.revision;doc=merged;syncBlocked=false;
  dirty=JSON.stringify(merged)!==JSON.stringify(source);changes++;
  localWrite(cacheKey(),doc);
  authenticatedReady=true;
@@ -214,7 +214,7 @@ function renderSearch(){
  return '<h1>Søk etter butikkvarer</h1><p class="help">Priser fra Kassalapp når datakilden er tilgjengelig. En kjedepris er ikke garantert i din lokale butikk. Ingen oppdiktede priser.</p>'+
  '<form id="product-search"><label>Hva leter du etter?<input id="product-query" minlength="3" maxlength="100" required value="'+esc(searchText)+'" placeholder="F.eks. melk"></label><button class="primary">Søk etter produkt</button></form>'+
  (searchBusy?'<p role="status">Henter produkter …</p>':searchError?'<p role="alert">'+esc(searchError)+' '+button('Prøv igjen','retry-search')+'</p>':
- searchResults.length?searchResults.map((p,i)=>'<div class="row"><div class="icon">'+(p.image&&p.image.startsWith('https://')?'<img src="'+esc(p.image)+'" alt="" loading="lazy" width="60" height="60" onerror="this.hidden=true">':'🛒')+'</div>'+
+ searchResults.length?searchResults.map((p,i)=>'<div class="row"><div class="icon">'+'🛒'+'</div>'+
  '<div class="name">'+esc(p.name)+'<div class="sub">'+esc(p.weight?(p.weight+' '+(p.unit||'')):'Ukjent pakning')+' · '+esc(p.store||'Ukjent butikk')+'<br>'+
  (Number.isFinite(p.price)?Number(p.price).toFixed(2)+' kr':'Pris mangler')+
  (Number.isFinite(p.unitPrice)?' · '+Number(p.unitPrice).toFixed(2)+' kr/enhet':'')+
@@ -284,7 +284,7 @@ async function switchScope(){
  const next=scope==='personal'?'household':'personal';
  try{
   const result=await request('/api/core?scope='+next);
-  scope=next;doc=result.data;serverBase=deep(result.data);revision=result.revision;dirty=false;
+  scope=next;doc=result.data;serverBase=deep(result.data);revision=result.revision;dirty=false;syncBlocked=false;
   localWrite(cacheKey(),doc);$('profile').close();render();
  }catch(e){failed(e);}
 }
@@ -314,6 +314,7 @@ document.addEventListener('click',async e=>{
  if(a==='prev-week'){weekOffset--;selectedDay=0;render();return;}
  if(a==='next-week'){weekOffset++;selectedDay=0;render();return;}
  if(a==='preset'){addPreset(presets[Number(btn.dataset.index)]);return;}
+ if(a==='pantry-preset'){addPreset(presets[Number(btn.dataset.index)]);tab='week';render();return;}
  if(a==='use-favorite'){const r=doc.favorites.find(x=>x.id===id);if(r)addPreset(r);return;}
  if(a==='repeat'){
   const d=days(),prev=new Date(range().monday);prev.setDate(prev.getDate()-7);
@@ -376,12 +377,15 @@ document.addEventListener('click',async e=>{
  }
 });
 function renderPantry(){
+ const held=doc.pantry.filter(x=>!x.used).map(x=>M.normalized(x.name));
+ const matches=presets.map((p,i)=>({...p,index:i})).filter(p=>p.ingredients.some(x=>held.some(word=>word.includes(M.normalized(x.name))||M.normalized(x.name).includes(word))));
  return '<h1>Har hjemme</h1><p class="help">Frivillig oversikt. En kjøpt vare legges ikke inn automatisk, og middag trekker ikke fra lageret.</p>'+
  '<form id="pantry-form"><label>Navn<input id="pantry-name" required maxlength="200" placeholder="F.eks. ris"></label>'+
  '<div class="kv"><label>Mengde (valgfritt)<input id="pantry-quantity" type="number" min="0" step="any"></label>'+
  '<label>Dato (valgfritt)<input id="pantry-date" type="date"></label></div><button class="primary">Legg til</button></form>'+
  doc.pantry.map(x=>'<div class="row"><span class="name '+(x.used?'checked':'')+'">'+esc(x.name)+'<small style="display:block">'+esc(x.quantity||'')+' '+esc(x.date||'')+'</small></span>'+
  button(x.used?'Brukt opp ✓':'Marker brukt opp','mark-used','data-id="'+esc(x.id)+'"')+'</div>').join('')+
+ (matches.length?'<h2>Mulige middager med noe du har</h2><p class="help">Dette er forslag basert på varenavn, ikke en kontroll av tilgjengelige mengder eller allergener.</p><div class="catalog">'+matches.map(x=>button(M.icon(x.title)+' '+esc(x.title),'pantry-preset','data-index="'+x.index+'"')).join('')+'</div>':'')+
  '<p><button data-tab="home">Tilbake til Hjem</button></p>';
 }
 document.addEventListener('submit',async e=>{
