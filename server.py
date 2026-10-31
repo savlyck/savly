@@ -6,6 +6,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import households
 import core_store
+import price_gateway
 
 ROOT = Path(__file__).resolve().parent / 'public'
 STORES = {'REMA_1000':'rem','KIWI':'kiwi','COOP_OBS':'obs','COOP_EXTRA':'extra','MENY_NO':'meny','SPAR_NO':'spar','BUNNPRIS':'bunnpris','JOKER_NO':'joker','COOP_MEGA':'mega','COOP_PRIX':'prix','COOP_MARKED':'marked','MATKROKEN':'matkroken','NAERBUTIKKEN':'narbutikken','HOLDBART':'holdbart'}
@@ -18,49 +19,10 @@ CACHE, REQUESTS = {}, []
 LOCK = threading.Lock()
 SLOTS = threading.BoundedSemaphore(4)
 
-class ApiError(Exception):
-    def __init__(self, status, message): self.status, self.message = status, message
-
-class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise ApiError(502, 'Datakilden svarte med en uventet omdirigering.')
+ApiError = price_gateway.ApiError
 
 def fetch(path):
-    if not KEY: raise ApiError(503, 'API-nøkkel mangler på serveren.')
-    now = time.monotonic()
-    with LOCK:
-        hit = CACHE.get(path)
-        if hit and now-hit[0] < 300: return hit[1]
-        REQUESTS[:] = [t for t in REQUESTS if now-t < 3600]
-        if len(REQUESTS) >= API_PER_HOUR or sum(now-t < 60 for t in REQUESTS) >= API_PER_MINUTE:
-            raise ApiError(429, 'Mange prissøk. Vent litt og prøv igjen.')
-        REQUESTS.append(now)
-    if not SLOTS.acquire(blocking=False): raise ApiError(429, 'Prissøk pågår. Prøv igjen om litt.')
-    try:
-        req = urllib.request.Request('https://kassal.app/api/v1'+path, headers={'Authorization':'Bearer '+KEY,'Accept':'application/json'})
-        with urllib.request.build_opener(NoRedirect()).open(req, timeout=15) as response:
-            raw = response.read(5_000_001)
-            if len(raw)>5_000_000: raise ApiError(502, 'Svaret fra datakilden er for stort.')
-            result = json.loads(raw)
-        with LOCK:
-            if len(CACHE)>=150: CACHE.pop(next(iter(CACHE)))
-            CACHE[path]=(now,result)
-        return result
-    except urllib.error.HTTPError as e:
-        status = 429 if e.code==429 else 502
-        messages = {
-            400: 'Kassalapp avviste søkeparameterne (400). Oppdater SAVLY-serveren.',
-            401: 'Kassalapp avviste API-nøkkelen (401). Start serveren på nytt med riktig nøkkel.',
-            403: 'Kassalapp tillater ikke denne forespørselen (403). Sjekk API-tilgangen.',
-            404: 'Ingen data funnet hos Kassalapp (404). Prøv et annet produkt.',
-            422: 'Kassalapp avviste søkeparameterne (422). Oppdater SAVLY-serveren.',
-            429: 'Kassalapps forespørselsgrense er nådd (429). Vent litt før du søker igjen.'
-        }
-        # Only expose the status, never upstream response bodies or credentials.
-        raise ApiError(status, messages.get(e.code, f'Kassalapp svarte med feil {e.code}. Prøv igjen senere.'))
-    except (urllib.error.URLError, TimeoutError, ValueError):
-        raise ApiError(502, 'Kunne ikke hente priser. Prøv igjen senere.')
-    finally: SLOTS.release()
+    return price_gateway.fetch(path,KEY)
 
 def number(value):
     return value if isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value) and value>=0 else None
@@ -274,7 +236,7 @@ def search_score(name, query):
     return score
 
 def api(path, query):
-    if path=='/api/status': return {'configured':bool(KEY)}
+    if path=='/api/status': return {'configured':price_gateway.configured(KEY),'provider':price_gateway.PROVIDER_NAME}
     if path=='/api/products':
         q=query.get('q',[''])[0].strip(); store=query.get('store',[''])[0]
         if not 3<=len(q)<=100: raise ApiError(400,'Skriv mellom 3 og 100 tegn.')
