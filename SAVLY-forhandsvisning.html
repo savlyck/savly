@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="nb"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10274d"><meta name="description" content="Planlegg middager, bruk maten du har og handle smartere med SAVLY.">
+<title>SAVLY · Lokal forhåndsvisning</title><style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#f6f8fb;color:#172a45;color-scheme:light}
+*{box-sizing:border-box}body{margin:0}button,input,textarea,select{font:inherit}button{cursor:pointer;min-height:44px;border-radius:12px;border:1px solid #cdd6e3;background:#fff;color:#10274d;padding:9px 14px}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2683de;outline-offset:2px}button:disabled{opacity:.5;cursor:default}
+a{color:#124984}.shell{min-height:100svh;max-width:780px;margin:auto;background:#fff;box-shadow:0 0 36px #132d4c0a}
+.header{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;background:#10274d;color:#fff;padding:15px 19px;min-height:72px}.brand{font-size:25px;font-weight:850;letter-spacing:.065em;display:block}.brand-desc{font-size:11px;color:#dce9ff}.header button{border-color:#627897;background:#fff;color:#10274d}
+#main{padding:20px 18px 112px;max-width:690px;margin:auto;line-height:1.5}h1{font-size:25px;line-height:1.2;margin:10px 0 10px}h2{font-size:19px;line-height:1.3;margin:22px 0 10px}h3{font-size:16px;margin:5px 0}p{margin:8px 0 14px}.muted,.help{color:#5f6f80;font-size:13px}.help{margin-top:4px}small{font-size:12px;color:#607087}
+label{display:block;font-weight:650;margin:12px 0 7px}input,select,textarea{border:1px solid #abbacf;border-radius:10px;padding:11px;width:100%;background:#fff;color:#192d4b}input[type=checkbox]{width:23px;height:23px;accent-color:#10274d;margin:0;flex:none}
+.primary{background:#10274d;color:#fff;border-color:#10274d;font-weight:650}.secondary{background:#ecf2fb;border:0}.danger{color:#9d2530;border-color:#df9ca3}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}.actions button{flex:0 1 auto}.card{background:#fff;border:1px solid #dbe2ec;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 12px #203b5709}.card h2{margin-top:0}.count{font-size:24px;font-weight:750}.pill{background:#eef4fd;color:#12457b;border-radius:16px;padding:4px 9px;font-size:12px;font-weight:600;display:inline-block}.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid #e7eaf0;padding:13px 0}.row:last-child{border:0}.row .name{font-weight:700;flex:1;min-width:160px}.row .sub{font-size:12px;color:#5e6f81}.row button{font-size:13px}.item-actions{display:flex;flex-wrap:wrap;gap:6px}.day{margin:22px 0 12px}.day-title{display:flex;justify-content:space-between;align-items:center}.day-title h2{margin:0}.empty{border:1px dashed #afbed0;padding:24px 18px;border-radius:14px;text-align:center;color:#546982}.catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.catalog button{text-align:left;font-size:13px;line-height:1.4}
+#tabs{position:fixed;bottom:0;left:0;right:0;max-width:780px;margin:auto;background:#fff;z-index:5;border-top:1px solid #d5dde9;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 4px max(7px,env(safe-area-inset-bottom));box-shadow:0 -4px 17px #10274d0b}#tabs button{border:0;font-size:20px;min-height:55px;display:grid;align-content:center;gap:2px;padding:4px;color:#4e6179}#tabs button span{font-size:11px}#tabs button[aria-current=page]{background:#e9f2ff;color:#0f396c;font-weight:750}
+dialog{border:0;border-radius:18px;box-shadow:0 10px 55px #102d4c45;padding:20px;width:min(92vw,490px);max-height:85svh;overflow:auto}dialog::backdrop{background:#11274391}.dialog-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.dialog-top h2{margin:0}.dialog-top button{min-width:44px}.dialog-top+*{margin-top:14px}dialog .actions{margin:16px 0}
+#notice{position:sticky;top:72px;z-index:4;background:#fff3cf;border:1px solid #dcc46c;padding:11px 16px;color:#503c14;font-size:14px}#notice[hidden]{display:none}
+.sync-ok{color:#33694a}.sync-wait{color:#86520d}.stack{display:grid;gap:12px}.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}.icon{font-size:24px}.date-nav{display:flex;align-items:center;gap:10px;justify-content:space-between}.date-nav b{font-size:13px}.checklabel{display:flex;align-items:center;gap:9px;margin:0;font-weight:450}.checked{text-decoration:line-through;opacity:.58}
+@media(min-width:700px){#main{padding:24px 36px 125px}h1{font-size:30px}}
+</style>
+</head><body>
+<div class="shell">
+<header class="header"><div><span class="brand">SAVLY</span><span class="brand-desc">Middag og handling gjort enkelt</span></div>
+<button id="profile-button" aria-label="Åpne profil og innstillinger" type="button"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-5 16-5 16 0"/></svg></button></header>
+<div id="notice" role="status" aria-live="polite" hidden></div>
+<main id="main" tabindex="-1"><p>Åpner planleggeren …</p></main>
+<nav id="tabs" aria-label="Hovednavigasjon">
+<button data-tab="home" aria-current="page">⌂ <span>Hjem</span></button>
+<button data-tab="week">▦ <span>Ukeplan</span></button>
+<button data-tab="list">☑ <span>Handleliste</span></button>
+<button data-tab="search">⌕ <span>Søk</span></button></nav></div>
+<dialog id="profile"><div class="dialog-top"><h2>Profil og innstillinger</h2><button data-action="close-profile" aria-label="Lukk profil">✕</button></div><div id="profile-body"></div></dialog>
+<dialog id="editor"><div class="dialog-top"><h2 id="editor-title">Middag</h2><button data-action="close-editor" aria-label="Lukk">✕</button></div><form id="meal-form">
+<label>Navn på middag<input id="meal-title" required maxlength="200" autocomplete="off" placeholder="F.eks. taco"></label>
+<label>Dag<select id="meal-date"></select></label><label>Antall porsjoner<input id="meal-portions" type="number" min="1" max="30" value="2" required></label>
+<label>Ingredienser, én per linje <small>Skriv f.eks. 400 g kjøttdeig. Kan stå tomt.</small><textarea id="meal-ingredients" rows="6" placeholder="400 g kjøttdeig&#10;6 stk tortillalefser"></textarea></label>
+<p class="help">Uklare mengder beholdes som tekst. Ingen gjetting.</p>
+<button type="submit" class="primary">Lagre middag</button></form></dialog>
+<script>
+/* Pure SAVLY data model. No DOM, network, login or storage dependencies. */
+(function (root, factory) {
+  const model=factory();
+  if(typeof module==='object' && module.exports) module.exports=model;
+  else root.SavlyModel=model;
+})(typeof globalThis==='object'?globalThis:this,function(){
+  'use strict';
+  const types={g:['mass',1,'g'],kg:['mass',1000,'g'],ml:['volume',1,'ml'],cl:['volume',10,'ml'],dl:['volume',100,'ml'],l:['volume',1000,'ml'],stk:['pieces',1,'stk'],pk:['packages',1,'pk']};
+  const normalized=x=>String(x||'').trim().toLocaleLowerCase('nb-NO').replace(/\s+/g,' ');
+  const date=d=>{const n=new Date(d);return [n.getFullYear(),String(n.getMonth()+1).padStart(2,'0'),String(n.getDate()).padStart(2,'0')].join('-');};
+  const weekStart=d=>{const result=new Date(d.getFullYear(),d.getMonth(),d.getDate());result.setDate(result.getDate()-(result.getDay()+6)%7);return result;};
+  const day=(monday,index)=>{const d=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate());d.setDate(d.getDate()+index);return date(d);};
+  const id=()=> 'sv-'+(globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2)));
+  const empty=()=>({meals:[],list:[],pantry:[],favorites:[],prefs:{people:1,allergies:[],onboarded:false}});
+  const icon=title=>{
+    const s=normalized(title);
+    for(const [pattern,e] of [[/taco|burrito|tortilla/,'🌮'],[/biff|entrecote|entrecôte|steak/,'🥩'],[/pizza/,'🍕'],[/burger/,'🍔'],[/laks|torsk|fisk/,'🐟'],[/kylling/,'🍗'],[/pasta|spaghetti|spagetti|lasagne/,'🍝'],[/suppe/,'🍲'],[/salat/,'🥗'],[/risotto/,'🍚'],[/pannekak/,'🥞'],[/pølse/,'🌭']]) if(pattern.test(s))return e;
+    return '🍽️';
+  };
+  const round=x=>Math.round(x*1000)/1000;
+  const mealKey=m=>m.date+'|'+normalized(m.title);
+  function suggested(meals,from,to){
+    const groups=new Map();
+    for(const m of meals){
+      if(m.type && m.type!=='dinner')continue;
+      if(m.date<from || m.date>to)continue;
+      const ratio=(Number(m.portions)||1)/(Number(m.basePortions)||Number(m.portions)||1);
+      for(let i=0;i<(m.ingredients||[]).length;i++){
+        const ing=m.ingredients[i];
+        const name=String(ing.name||'').trim();
+        if(!name)continue;
+        const raw=ing.quantity;
+        const hasQuantity=raw!==null&&raw!==undefined&&String(raw).trim()!==''&&Number.isFinite(Number(raw))&&Number(raw)>0;
+        const unit=normalized(ing.unit||'');
+        const converted=types[unit];
+        const normal=normalized(name);
+        // Unknown or unmeasured items stay separate; never invent a quantity.
+        const groupable=hasQuantity && Boolean(converted);
+        const key=groupable?'quantity|'+normal+'|'+converted[0]:'unmeasured|'+m.id+'|'+i+'|'+normal;
+        let row=groups.get(key);
+        if(!row){
+          row={id:'gen-'+stableHash(key),genKey:key,name,quantity:groupable?0:null,
+               unit:groupable?converted[2]:unit,details:(!groupable?String(ing.note||raw||'Mengde ikke oppgitt'):''),originIds:[],originNames:[],source:'generated',done:false,haveHome:false};
+          groups.set(key,row);
+        }
+        if(groupable)row.quantity=round(row.quantity+Number(raw)*ratio*converted[1]);
+        if(!row.originIds.includes(m.id)){row.originIds.push(m.id);row.originNames.push(m.title);}
+      }
+    }
+    return [...groups.values()];
+  }
+  function stableHash(s){let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return (h>>>0).toString(36);}
+  function reconcile(oldList, proposals){
+    const expected=new Map(proposals.map(x=>[x.genKey,x]));
+    const result=[],seen=new Set();
+    for(const old of oldList){
+      if(old.source!=='generated'){result.push(old);continue;}
+      const next=expected.get(old.genKey);
+      if(!next){
+        // A generated row with a user action is kept as a clearly unlinked manual row.
+        if(old.manualOverride||old.done||old.haveHome) result.push({...old,source:'manual',orphaned:true});
+        continue;
+      }
+      if(seen.has(old.genKey))continue;
+      result.push({...next,...old,quantity:old.manualOverride?old.quantity:next.quantity,
+        unit:old.manualOverride?old.unit:next.unit,name:old.manualOverride?old.name:next.name,
+        originIds:next.originIds,originNames:next.originNames,genKey:next.genKey,source:'generated'});
+      seen.add(old.genKey);
+      expected.delete(old.genKey);
+    }
+    result.push(...expected.values());
+    return result;
+  }
+  function rebase(base, local, remote){
+    // Apply only actual local edits on top of server-accepted remote changes.
+    const out=JSON.parse(JSON.stringify(remote)),absent=Symbol('absent');
+    const equal=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+    for(const kind of ['meals','list','pantry','favorites']){
+      const b=new Map(base[kind].map(x=>[x.id,x])),l=new Map(local[kind].map(x=>[x.id,x])),r=new Map(remote[kind].map(x=>[x.id,x]));
+      for(const id of new Set([...b.keys(),...l.keys()])){
+        const before=b.has(id)?b.get(id):absent;
+        const after=l.has(id)?l.get(id):absent;
+        const now=r.has(id)?r.get(id):absent;
+        if(equal(before,after)||equal(after,now))continue;
+        if(equal(before,now)){
+          if(after===absent)r.delete(id);else r.set(id,JSON.parse(JSON.stringify(after)));
+          continue;
+        }
+        if(before===absent||after===absent||now===absent)throw Error('Samtidig redigering av samme element. Eksporter dine endringer.');
+        const row={...now};
+        for(const field of new Set([...Object.keys(before),...Object.keys(after)])){
+          const old=Object.hasOwn(before,field)?before[field]:absent;
+          const next=Object.hasOwn(after,field)?after[field]:absent;
+          const current=Object.hasOwn(now,field)?now[field]:absent;
+          if(equal(old,next)||equal(next,current))continue;
+          if(!equal(old,current))throw Error('Samtidig redigering av samme felt. Eksporter dine endringer.');
+          if(next===absent)delete row[field];else row[field]=JSON.parse(JSON.stringify(next));
+        }
+        r.set(id,row);
+      }
+      out[kind]=[...r.values()];
+    }
+    for(const key of new Set([...Object.keys(base.prefs),...Object.keys(local.prefs)])){
+      const old=Object.hasOwn(base.prefs,key)?base.prefs[key]:absent,next=Object.hasOwn(local.prefs,key)?local.prefs[key]:absent;
+      const now=Object.hasOwn(remote.prefs,key)?remote.prefs[key]:absent;
+      if(equal(old,next)||equal(now,next))continue;
+      if(!equal(old,now))throw Error('Samtidig endring i samme innstilling.');
+      if(next===absent)delete out.prefs[key];else out.prefs[key]=JSON.parse(JSON.stringify(next));
+    }
+    return out;
+  }
+  function mergeGuest(remote,guest){
+    const output=JSON.parse(JSON.stringify(remote));
+    for(const kind of ['meals','list','pantry','favorites']){
+      const ids=new Set(output[kind].map(x=>x.id));
+      // Match stable ID only. Never collapse two intended meals based on their title.
+      for(const item of guest[kind]||[]) if(!ids.has(item.id)){output[kind].push(JSON.parse(JSON.stringify(item)));ids.add(item.id);}
+    }
+    if(!output.prefs.onboarded && guest.prefs?.onboarded)output.prefs=JSON.parse(JSON.stringify(guest.prefs));
+    return output;
+  }
+  return {types,normalized,date,weekStart,day,id,empty,icon,mealKey,suggested,reconcile,mergeGuest,rebase};
+});
+
+</script>
+<script>
+/* SAVLY main application: guests local, signed-in accounts in server DB. */
+(function(){
+'use strict';
+const M=window.SavlyModel, $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const guestKey='savly_guest_v2',cachePrefix='savly_cache_v2_';
+const presets=[
+ {title:'Taco',basePortions:2,ingredients:[{name:'Kjøttdeig',quantity:400,unit:'g'},{name:'Tortillalefser',quantity:6,unit:'stk'},{name:'Tacokrydder',quantity:1,unit:'pk'},{name:'Salat',quantity:1,unit:'stk'}]},
+ {title:'Pasta med kjøttdeig',basePortions:2,ingredients:[{name:'Pasta',quantity:250,unit:'g'},{name:'Kjøttdeig',quantity:400,unit:'g'},{name:'Hakkede tomater',quantity:1,unit:'pk'}]},
+ {title:'Kylling med ris',basePortions:2,ingredients:[{name:'Kyllingfilet',quantity:400,unit:'g'},{name:'Ris',quantity:200,unit:'g'},{name:'Wokgrønnsaker',quantity:400,unit:'g'}]},
+ {title:'Laks med poteter',basePortions:2,ingredients:[{name:'Laks',quantity:300,unit:'g'},{name:'Poteter',quantity:500,unit:'g'}]}
+];
+const deep=x=>JSON.parse(JSON.stringify(x));
+function read(key){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v&&Array.isArray(v.meals)&&Array.isArray(v.list)&&Array.isArray(v.pantry)&&Array.isArray(v.favorites)&&v.prefs?v:null;}catch{return null;}}
+function localWrite(key,data){try{localStorage.setItem(key,JSON.stringify(data));return true;}catch{notice('Lagringen på enheten er full eller blokkert. Eksporter data før du fortsetter.');return false;}}
+function legacyItem(x,kind){const label=String((kind==='meals'?x.title:x.name)||'').trim();if(!label)return null;
+ const item={...x,id:typeof x.id==='string'&&/^[\w-]{1,80}$/.test(x.id)?x.id:M.id()};
+ if(kind==='meals'){item.title=label;item.type=item.type||'dinner';item.ingredients=Array.isArray(item.ingredients)?item.ingredients:[];item.portions=Number(item.portions)||2;item.basePortions=Number(item.basePortions)||item.portions;}
+ return item;
+}
+function migrateGuest(){
+ const saved=read(guestKey);if(saved)return saved;
+ if(localStorage.getItem('savly_legacy_migrated_v2')==='yes')return M.empty();
+ const base=M.empty();
+ // Non-destructive best-effort import; original legacy keys are never removed.
+ try{
+  for(const [key,kind] of [['ms_meals','meals'],['ms_list','list'],['ms_fridge','pantry']]){
+   const raw=JSON.parse(localStorage.getItem(key)||'[]');
+   if(Array.isArray(raw))base[kind]=raw.map(x=>legacyItem(x,kind)).filter(Boolean);
+  }
+  const preferences=JSON.parse(localStorage.getItem('ms_prefs')||'{}');
+  if(Number.isInteger(preferences.householdSize)&&preferences.householdSize>0&&preferences.householdSize<=30)base.prefs.people=preferences.householdSize;
+  if(Array.isArray(preferences.allergies))base.prefs.allergies=preferences.allergies.filter(x=>typeof x==='string').slice(0,30);
+  if(preferences.onboarded||base.meals.length||base.list.length)base.prefs.onboarded=true;
+ }catch{/* Legacy storage can contain old formats; never delete it. */}
+ localWrite(guestKey,base);return base;
+}
+let doc=migrateGuest(),session=null,identity=null,scope='personal',home=null;
+let serverBase=null,revision=0,dirty=false,busy=false,syncBlocked=false,saveTimer=0,changes=0;
+let tab='home',weekOffset=0,selectedDay=0,editing=null,searchResults=[],searchText='',searchBusy=false,searchError='';
+let undo=null,authenticatedReady=false;
+function range(){let d=M.weekStart(new Date());d.setDate(d.getDate()+7*weekOffset);return {first:M.day(d,0),last:M.day(d,6),monday:d};}
+function days(){let m=range().monday;return Array.from({length:7},(_,i)=>M.day(m,i));}
+function thisWeek(){const r=range();return doc.meals.filter(m=>(!m.type||m.type==='dinner')&&m.date>=r.first&&m.date<=r.last).sort((a,b)=>a.date.localeCompare(b.date));}
+function remaining(){return doc.list.filter(x=>!x.done&&!x.haveHome).length;}
+function cacheKey(){return identity?cachePrefix+identity.id+'_'+scope:guestKey;}
+function notice(text,undoable=false){const n=$('notice');n.hidden=false;n.innerHTML=esc(text)+(undoable?'<button data-action="undo" class="secondary">Angre</button>':'');}
+function clearNotice(){const n=$('notice');n.hidden=true;n.textContent='';}
+function failed(e){notice((e&&e.message)||'Noe gikk galt. Innholdet ditt er beholdt på enheten.');}
+function request(url,body){
+ const options={credentials:'same-origin',signal:AbortSignal.timeout(17000)};
+ if(body!==undefined){options.method='POST';options.headers={'Content-Type':'application/json','X-SAVLY-CSRF':session?.csrf||''};options.body=JSON.stringify(body);}
+ return fetch(url,options).then(async r=>{let result;try{result=await r.json();}catch{throw Error('Serveren ga et uventet svar.');}
+   if(!r.ok){const err=Error(result.error||'Kunne ikke gjennomføre handlingen.');err.status=r.status;err.code=result.code;throw err;}
+   if(result.csrf)session={...session,csrf:result.csrf,nonce:result.nonce};
+   return result;});
+}
+function changed(){
+ changes++;dirty=Boolean(identity);
+ localWrite(cacheKey(),doc);
+ if(identity){setStatus('Lagrer endringer …');clearTimeout(saveTimer);saveTimer=setTimeout(sync,450);}
+ render();
+}
+function setStatus(message){const el=$('sync-status');if(el)el.textContent=message;}
+function regenerate(){const {first,last}=range();doc.list=M.reconcile(doc.list,M.suggested(doc.meals.filter(x=>x.include!==false),first,last));}
+async function sync(){
+ if(!identity||busy||!dirty||syncBlocked)return;
+ busy=true;const current=changes,sent=deep(doc);
+ try{
+  const result=await request('/api/core?scope='+encodeURIComponent(scope),{data:sent,base:serverBase,revision});
+  revision=result.revision;serverBase=deep(result.data);
+  if(changes===current){doc=deep(result.data);dirty=false;localWrite(cacheKey(),doc);clearNotice();setStatus('Synkronisert');render();}
+  else {
+   try{doc=M.rebase(sent,doc,result.data);localWrite(cacheKey(),doc);saveTimer=setTimeout(sync,50);}
+   catch(err){syncBlocked=true;notice(err.message+' Dine lokale endringer er beholdt.');}
+  }
+ }catch(e){
+  setStatus('Ikke synkronisert');if(e.status===409){syncBlocked=true;notice('Samtidig redigering oppdaget. Dine lokale endringer er beholdt. Eksporter dem før du henter serverversjonen.');}else failed(e);
+ }finally{busy=false;if(dirty&&changes!==current&&!syncBlocked)setTimeout(sync,200);}
+}
+function adoptLegacyAccount(data){
+ if(!data?.personal)return M.empty();
+ const out=M.empty();
+ for(const [from,to] of [['meals','meals'],['list','list'],['fridge','pantry']]){
+  const items=data.personal[from];if(!Array.isArray(items))continue;
+  out[to]=items.map(x=>legacyItem(x,from==='fridge'?'pantry':from)).filter(Boolean);
+ }
+ if(data.prefs){out.prefs.people=data.prefs.householdSize||1;out.prefs.allergies=Array.isArray(data.prefs.allergies)?data.prefs.allergies:[];out.prefs.onboarded=Boolean(data.prefs.onboarded);}
+ return out;
+}
+async function enterCloud(user,oldAccount){
+ identity=user;authenticatedReady=false;scope='personal';
+ const guest=read(guestKey)||M.empty();
+ const cached=read(cacheKey());
+ let data;
+ try{data=await request('/api/core?scope=personal');}
+ catch(e){identity=null;doc=guest;failed(e);render();return;}
+ const source=data.data,legacy=adoptLegacyAccount(oldAccount);
+ // Legacy account import runs only when no core document exists.
+ const emptyCloud=data.revision===0 && !source.meals.length&&!source.list.length&&!source.pantry.length;
+ const base=emptyCloud?M.mergeGuest(source,legacy):source;
+ const merged=M.mergeGuest(base,guest);
+ serverBase=deep(source);revision=data.revision;doc=merged;syncBlocked=false;
+ dirty=JSON.stringify(merged)!==JSON.stringify(source);changes++;
+ localWrite(cacheKey(),doc);
+ authenticatedReady=true;
+ if(dirty)await sync();
+ if(!dirty){localStorage.setItem('savly_legacy_migrated_v2','yes');localStorage.removeItem(guestKey);}
+ render();
+}
+async function boot(){
+ if(location.protocol==='file:'){identity=null;doc=migrateGuest();render();return;}
+ try{
+   session=await request('/api/session');
+   home=session.home||null;
+   if(session.user?.provider==='google')await enterCloud(session.user,session.account?.data);
+   else {identity=null;doc=migrateGuest();}
+ }catch(e){identity=null;doc=migrateGuest();failed(e);}
+ render();
+}
+function startGoogle(){
+ if(!session?.googleClientId){notice('Google-innlogging er ikke konfigurert på serveren. Du kan fortsatt planlegge som gjest.');return;}
+ if(!window.google?.accounts?.id){notice('Google sin innloggingsknapp kunne ikke lastes. Prøv senere.');return;}
+ const place=$('google-holder');if(!place)return;
+ window.google.accounts.id.initialize({
+  client_id:session.googleClientId,nonce:session.nonce,auto_select:false,
+  callback:async response=>{
+   if(!response?.credential)return;
+   try{
+    const data=await request('/api/auth/google',{credential:response.credential,loginAttempt:session.loginAttempt});
+    const check=await request('/api/session');
+    if(check.user?.id!==data.user.id)throw Error('Innloggingsøkten kunne ikke bekreftes. Gjestedata er fortsatt lagret.');
+    session=check;home=check.home||null;
+    await enterCloud(check.user,check.account?.data);
+    if(identity)$('profile').close();
+   }catch(e){failed(e);try{session=await request('/api/session');renderProfile();}catch{}}
+  }
+ });
+ place.innerHTML='';window.google.accounts.id.renderButton(place,{theme:'outline',size:'large',shape:'pill',text:'continue_with'});
+}
+async function logout(){
+ if(dirty){await sync();if(dirty){notice('Endringer er ikke synkronisert. Eksporter en kopi før du logger ut.');return;}}
+ try{await request('/api/auth/logout',{});}catch(e){failed(e);return;}
+ identity=null;scope='personal';serverBase=null;revision=0;dirty=false;doc=migrateGuest();session=await request('/api/session');
+ $('profile').close();render();
+}
+function safeTitle(x){return esc(x.title||x.name||'');}
+function button(text,action,details='',cls=''){return '<button type="button" data-action="'+action+'" '+details+' class="'+cls+'">'+text+'</button>';}
+function render(){
+ if(!M)return;
+ for(const btn of document.querySelectorAll('#tabs [data-tab]'))btn.setAttribute('aria-current',btn.dataset.tab===tab?'page':'false');
+ let html='';
+ if(!doc.prefs.onboarded)html=renderWelcome();
+ else if(tab==='home')html=renderHome();
+ else if(tab==='week')html=renderWeek();
+ else if(tab==='list')html=renderList();
+ else if(tab==='pantry')html=renderPantry();
+ else html=renderSearch();
+ $('main').innerHTML=html;
+ renderProfile();
+}
+function renderWelcome(){
+ return '<h1>Planlegg middagen, handle det du trenger.</h1><p>Start med to enkle valg. Ingen konto eller betaling.</p>'+
+ '<label>Hvor mange personer?<input id="start-people" type="number" min="1" max="30" value="'+esc(doc.prefs.people)+'"></label>'+
+ '<label>Allergier eller matvarer dere vil unngå (valgfritt)<input id="start-allergies" value="'+esc((doc.prefs.allergies||[]).join(', '))+'" placeholder="Kan hoppes over"></label>'+
+ '<p class="help">Preferansene er bare hjelp til planlegging, ingen allergigaranti. Kontroller alltid innholdet i maten.</p>'+
+ button('Velg første middag','onboard','','primary')+
+ '<p class="help">Som gjest lagres innholdet på denne enheten. Opprett konto senere for synkronisering.</p>';
+}
+function renderHome(){
+ const today=M.date(new Date()),todays=doc.meals.filter(x=>x.date===today&&(!x.type||x.type==='dinner'));
+ const total=thisWeek().length;
+ return '<h1>God dag! Hva skal vi spise?</h1>'+
+ '<div class="card"><span class="pill">Dagens middag</span><h2>'+ (todays.length?todays.map(x=>M.icon(x.title)+' '+safeTitle(x)).join('<br>'):'Ingen middag planlagt')+'</h2>'+
+ button('Planlegg uka','goto','data-tab="week"','primary')+'</div>'+
+ '<div class="card"><span class="count">'+remaining()+'</span><p>varer gjenstår på handlelisten.</p>'+
+ button('Åpne handleliste','goto','data-tab="list"')+'</div>'+
+ (!total?'<div class="empty">Start med én middag, så bygger vi handlelisten derfra.<p>'+button('Legg inn første middag','open-add','','primary')+'</p></div>':
+ '<p>'+total+' middag(er) planlagt denne uka. Du kan gjenbruke planen neste uke.</p>')+
+ '<div class="actions">'+button('Har hjemme','pantry')+button('Favorittmiddager','goto','data-tab="week"')+'</div>'+
+ '<p class="help">'+(identity?'Kontoen synkroniseres når du er på nett.':'Gjestedata lagres bare på enheten. Bruk profilikonet for å lagre i konto.')+'</p>';
+}
+function renderWeek(){
+ const d=days(),meals=thisWeek();
+ return '<h1>Ukeplan</h1><div class="date-nav">'+button('← Forrige','prev-week')+
+ '<b>'+esc(d[0])+' til '+esc(d[6])+'</b>'+button('Neste →','next-week')+'</div>'+
+ '<div class="actions">'+button('Legg til middag','open-add','','primary')+button('Gjenbruk forrige uke','repeat')+button('Oppdater handleliste','generate')+'</div>'+
+ '<h2>Velg en oppskrift</h2><label>Legg oppskriften på dag<select id="preset-day">'+d.map((date,i)=>'<option value="'+i+'" '+(selectedDay===i?'selected':'')+'>'+['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'][i]+'</option>').join('')+'</select></label><p class="help">Enkle SAVLY-eksempler, ikke kopiert fra oppskriftssider.</p><div class="catalog">'+presets.map((r,i)=>button(M.icon(r.title)+' '+esc(r.title),'preset','data-index="'+i+'"')).join('')+'</div>'+
+ '<h2>Favoritter</h2>'+(doc.favorites.length?'<div class="catalog">'+doc.favorites.map(x=>button(M.icon(x.title)+' '+safeTitle(x),'use-favorite','data-id="'+esc(x.id)+'"')).join('')+'</div>':'<p class="muted">Ingen favoritter lagret ennå.</p>')+
+ d.map((date,i)=>'<section class="day"><div class="day-title"><h2>'+['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'][i]+'</h2>'+
+ button('Legg til','open-add','data-date="'+date+'"')+'</div>'+
+ (meals.filter(m=>m.date===date).map(m=>'<div class="card"><div class="row"><div class="name">'+M.icon(m.title)+' '+safeTitle(m)+
+ '<div class="sub">'+(Number(m.portions)||1)+' porsjoner'+((m.ingredients||[]).length?' · '+m.ingredients.length+' ingredienser':' · Ingen ingredienser til handlelisten')+'</div></div>'+
+ '<label class="checklabel"><input type="checkbox" data-include="'+esc(m.id)+'" '+(m.include===false?'':'checked')+'>Handle</label></div>'+
+ '<div class="item-actions">'+button('Rediger','edit-meal','data-id="'+esc(m.id)+'"')+
+ button('Kopier','copy-meal','data-id="'+esc(m.id)+'"')+button('Flytt','move-meal','data-id="'+esc(m.id)+'"')+
+ button('☆ Favoritt','favorite','data-id="'+esc(m.id)+'"')+button('Slett','delete-meal','data-id="'+esc(m.id)+'"','danger')+'</div></div>').join('')||
+ '<p class="muted">Ingen middag denne dagen.</p>')+'</section>').join('')+
+ '<p class="help">Velg «Handle» på middagene som skal bidra til ukas handleliste.</p>';
+}
+function renderList(){
+ const rows=doc.list;
+ const generated=rows.filter(x=>x.source==='generated').length;
+ return '<h1>Handleliste</h1><p>'+remaining()+' varer gjenstår. '+generated+' fra middagsplanen.</p>'+
+ '<div class="actions">'+button('Oppdater fra ukeplan','generate','','primary')+button('Har hjemme','pantry')+'</div>'+
+ '<form id="add-item"><label>Legg til egen vare<input id="new-item" maxlength="200" required placeholder="F.eks. melk"></label><button class="primary" type="submit">Legg til</button></form>'+
+ (rows.length?rows.map(x=>'<div class="row"><label class="checklabel" style="flex:1"><input type="checkbox" data-done="'+esc(x.id)+'" '+(x.done?'checked':'')+'><span class="'+(x.done?'checked':'')+'"><strong>'+esc(x.name)+'</strong><span class="sub" style="display:block">'+
+ esc(x.quantity==null?(x.details||'Ukjent mengde'):x.quantity+' '+(x.unit||''))+
+ (x.originNames?.length?' · Til '+esc(x.originNames.join(', ')):'')+(x.orphaned?' · Ikke lenger i ukeplanen':'')+'</span></span></label>'+
+ '<div class="item-actions">'+button(x.haveHome?'Hjemme ✓':'Har hjemme','have-home','data-id="'+esc(x.id)+'"')+
+ button('Endre','edit-item','data-id="'+esc(x.id)+'"')+
+ button('Slett','delete-item','data-id="'+esc(x.id)+'"','danger')+'</div></div>').join(''):'<div class="empty">Ingen varer ennå. Velg en middag i ukeplanen eller legg til noe her.</div>');
+}
+function renderSearch(){
+ return '<h1>Søk etter butikkvarer</h1><p class="help">Priser fra Kassalapp når datakilden er tilgjengelig. En kjedepris er ikke garantert i din lokale butikk. Ingen oppdiktede priser.</p>'+
+ '<form id="product-search"><label>Hva leter du etter?<input id="product-query" minlength="3" maxlength="100" required value="'+esc(searchText)+'" placeholder="F.eks. melk"></label><button class="primary">Søk etter produkt</button></form>'+
+ (searchBusy?'<p role="status">Henter produkter …</p>':searchError?'<p role="alert">'+esc(searchError)+' '+button('Prøv igjen','retry-search')+'</p>':
+ searchResults.length?searchResults.map((p,i)=>'<div class="row"><div class="icon">'+'🛒'+'</div>'+
+ '<div class="name">'+esc(p.name)+'<div class="sub">'+esc(p.weight?(p.weight+' '+(p.unit||'')):'Ukjent pakning')+' · '+esc(p.store||'Ukjent butikk')+'<br>'+
+ (Number.isFinite(p.price)?Number(p.price).toFixed(2)+' kr':'Pris mangler')+
+ (Number.isFinite(p.unitPrice)?' · '+Number(p.unitPrice).toFixed(2)+' kr/enhet':'')+
+ ' · Prisdato: '+esc(p.priceDate||'ukjent')+'</div></div>'+
+ button('Legg til','add-product','data-index="'+i+'"')+'</div>').join(''):
+ '<div class="empty">Søk etter et konkret produkt. Ukeplan og handleliste fungerer også når pris-API-et er nede.</div>');
+}
+function renderProfile(){
+ const host=$('profile-body');if(!host)return;
+ host.innerHTML='<p><strong>'+(identity?'Innlogget: '+esc(identity.name):'Gjest på denne enheten')+'</strong></p>'+
+ '<p id="sync-status" class="help">'+(identity?(dirty?'Endringer venter på synkronisering':'Kontodata lagres på serveren'):'Gjestedata lagres lokalt, ikke i skyen.')+'</p>'+
+ (!identity?'<div id="google-holder"></div><p class="help">Logg inn når du ønsker sikkerhetskopi eller delt husholdning. Gjestedata blir da overført.</p>':
+ '<div class="actions">'+button('Synkroniser nå','sync')+button('Logg ut','logout')+'</div>')+
+ '<h2>Innstillinger</h2><label>Personer<input id="profile-people" type="number" min="1" max="30" value="'+esc(doc.prefs.people)+'"></label>'+
+ '<label>Allergier / matvarer å unngå<input id="profile-allergies" value="'+esc((doc.prefs.allergies||[]).join(', '))+'"></label>'+
+ button('Lagre innstillinger','settings')+'<p class="help">Allergivalg er aldri en garanti for at en rett er trygg.</p>'+
+ '<h2>Dine data</h2><div class="actions">'+button('Eksporter JSON','export')+button('Importer JSON','import')+
+ '</div><input id="import-file" type="file" accept="application/json" hidden>'+
+ (identity?'<h2>Delt husholdning</h2><p class="help">Husstandsmedlemmer har tilgang til den delte planen. Endringer synkroniseres med konfliktkontroll.</p>'+
+ (home?'<p>'+esc(home.name)+' · '+esc(home.members?.length||0)+' medlemmer</p>'+
+ '<p>Invitasjonskode: '+esc(home.code||'utløpt')+'</p><div class="actions">'+button(scope==='household'?'Vis personlige data':'Vis delt plan','switch-scope')+
+ (scope==='household'?button('Kopier personlige data til delt plan','copy-personal'):'')+'</div>':
+ '<form id="create-house"><label>Navn på husholdning<input id="house-name" maxlength="80" placeholder="F.eks. Familien" required></label><button type="submit">Opprett husholdning</button></form><form id="join-house"><label>Invitasjonskode<input id="join-code" required></label><button type="submit">Bli med</button></form>'):'<p class="help">Logg inn for å bruke delt husholdning.</p>')+
+ '<p class="help">Dette er en lokal forhåndsvisning. For Google-innlogging, deling og prissøk må SAVLY startes fra Python-serveren. Data i denne fila lagres i nettleseren på enheten.</p>';
+ if($('profile').open&&!identity){if(location.protocol==='file:')$('google-holder').textContent='Google-innlogging og synkronisering krever den tilkoblede SAVLY-serveren.';else startGoogle();}
+}
+function ingredientsToText(items){return (items||[]).map(x=>x.quantity==null?(x.name+(x.note?' ('+x.note+')':'')):x.quantity+' '+(x.unit||'stk')+' '+x.name).join('\n');}
+function parseIngredients(text){return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).slice(0,100).map(line=>{
+ const match=line.match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|ml|cl|dl|l|stk|pk)\s+(.+)$/i);
+ return match?{quantity:Number(match[1].replace(',','.')),unit:match[2].toLowerCase(),name:match[3].trim()}:{quantity:null,unit:'',name:line,note:'Mengde ikke oppgitt'};
+});}
+function openMeal(id,date){
+ const m=doc.meals.find(x=>x.id===id),d=days();
+ editing=m?.id||null;
+ $('editor-title').textContent=m?'Rediger middag':'Ny middag';
+ $('meal-title').value=m?.title||'';
+ $('meal-portions').value=m?.portions||doc.prefs.people;
+ $('meal-ingredients').value=ingredientsToText(m?.ingredients);
+ $('meal-date').innerHTML=d.map(x=>'<option value="'+x+'">'+x+'</option>').join('');
+ $('meal-date').value=m?.date||date||d[selectedDay]||d[0];
+ $('editor').showModal();
+ $('meal-title').focus();
+}
+function addPreset(recipe){
+ const d=days();
+ const m={id:M.id(),title:recipe.title,type:'dinner',date:d[selectedDay],ingredients:deep(recipe.ingredients),basePortions:recipe.basePortions||doc.prefs.people,portions:doc.prefs.people,include:true};
+ doc.meals.push(m);regenerate();changed();
+}
+function setTab(next){tab=next;if(next==='week')weekOffset=0;render();$('main').focus();}
+function storeUndo(label){undo=deep(doc);notice(label,true);}
+function commit(){regenerate();changed();}
+function toastSave(label){changed();notice(label);}
+async function search(){
+ if(location.protocol==='file:'){searchBusy=false;searchError='Prissøk krever SAVLY-serveren. Du kan fortsatt planlegge og bruke handlelisten.';render();return;}
+ const v=$('product-query')?.value.trim()||searchText;searchText=v;if(v.length<3){searchError='Skriv minst tre tegn.';render();return;}
+ searchBusy=true;searchError='';render();
+ try{const data=await request('/api/products?q='+encodeURIComponent(v));searchResults=Array.isArray(data.products)?data.products:[];}
+ catch(e){searchError=e.message;searchResults=[];}
+ finally{searchBusy=false;render();}
+}
+function download(){
+ const blob=new Blob([JSON.stringify(doc,null,2)],{type:'application/json'});
+ const href=URL.createObjectURL(blob),a=document.createElement('a');a.href=href;a.download='savly-sikkerhetskopi-'+M.date(new Date())+'.json';
+ a.click();setTimeout(()=>URL.revokeObjectURL(href),1000);
+}
+async function switchScope(){
+ if(dirty){await sync();if(dirty){notice('Dine endringer må synkroniseres eller eksporteres før du bytter.');return;}}
+ const next=scope==='personal'?'household':'personal';
+ try{
+  const result=await request('/api/core?scope='+next);
+  scope=next;doc=result.data;serverBase=deep(result.data);revision=result.revision;dirty=false;syncBlocked=false;
+  localWrite(cacheKey(),doc);$('profile').close();render();
+ }catch(e){failed(e);}
+}
+async function copyPersonal(){
+ if(scope!=='household')return;
+ try{
+  const source=await request('/api/core?scope=personal');doc=M.mergeGuest(doc,source.data);regenerate();changed();
+  notice('Dine personlige data er kopiert til den delte planen. Originalene er beholdt.');
+ }catch(e){failed(e);}
+}
+document.addEventListener('click',async e=>{
+ const btn=e.target.closest('button');if(!btn)return;
+ if(btn.id==='profile-button'){$('profile').showModal();renderProfile();return;}
+ if(btn.dataset.tab){setTab(btn.dataset.tab);return;}
+ const a=btn.dataset.action,id=btn.dataset.id;
+ if(!a)return;
+ if(a==='close-profile'){$('profile').close();return;}
+ if(a==='close-editor'){$('editor').close();return;}
+ if(a==='undo'){if(undo){doc=undo;undo=null;changed();clearNotice();}return;}
+ if(a==='onboard'){
+  const people=Number($('start-people')?.value);if(!Number.isInteger(people)||people<1||people>30){notice('Velg mellom 1 og 30 personer.');return;}
+  doc.prefs={people,allergies:$('start-allergies').value.split(',').map(x=>x.trim()).filter(Boolean).slice(0,30),onboarded:true};
+  tab='week';changed();return;
+ }
+ if(a==='goto'){setTab(btn.dataset.tab||'home');return;}
+ if(a==='open-add'){openMeal(null,btn.dataset.date);return;}
+ if(a==='prev-week'){weekOffset--;selectedDay=0;render();return;}
+ if(a==='next-week'){weekOffset++;selectedDay=0;render();return;}
+ if(a==='preset'){addPreset(presets[Number(btn.dataset.index)]);return;}
+ if(a==='pantry-preset'){addPreset(presets[Number(btn.dataset.index)]);tab='week';render();return;}
+ if(a==='use-favorite'){const r=doc.favorites.find(x=>x.id===id);if(r)addPreset(r);return;}
+ if(a==='repeat'){
+  const d=days(),prev=new Date(range().monday);prev.setDate(prev.getDate()-7);
+  const first=M.day(prev,0),last=M.day(prev,6),existing=new Set(thisWeek().map(M.mealKey));
+  let added=0;
+  for(const x of doc.meals.filter(m=>m.date>=first&&m.date<=last)){
+   const nd=new Date(x.date+'T12:00:00');nd.setDate(nd.getDate()+7);
+   const m={...deep(x),id:M.id(),date:M.date(nd)};
+   if(existing.has(M.mealKey(m)))continue;
+   existing.add(M.mealKey(m));doc.meals.push(m);added++;
+  }
+  commit();notice(added?added+' middager kopiert fra forrige uke.':'Denne ukas middager var allerede lagt inn.');return;
+ }
+ if(a==='generate'){regenerate();changed();notice('Handlelisten er oppdatert uten duplikater.');return;}
+ if(a==='edit-meal'){openMeal(id);return;}
+ if(a==='copy-meal'||a==='move-meal'){
+  const m=doc.meals.find(x=>x.id===id);if(!m)return;
+  const date=prompt('Dato (ÅÅÅÅ-MM-DD)',days()[selectedDay]);
+  if(!date)return;if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){notice('Bruk datoformat ÅÅÅÅ-MM-DD.');return;}
+  if(a==='move-meal')m.date=date;else doc.meals.push({...deep(m),id:M.id(),date});
+  commit();return;
+ }
+ if(a==='delete-meal'){if(!confirm('Slette middagen?'))return;storeUndo('Middagen ble slettet.');doc.meals=doc.meals.filter(x=>x.id!==id);commit();return;}
+ if(a==='favorite'){
+  const m=doc.meals.find(x=>x.id===id);if(!m)return;
+  if(!doc.favorites.some(x=>M.normalized(x.title)===M.normalized(m.title)))doc.favorites.push({id:M.id(),title:m.title,ingredients:deep(m.ingredients||[]),basePortions:m.basePortions||m.portions||1});
+  changed();return;
+ }
+ if(a==='have-home'){const x=doc.list.find(x=>x.id===id);if(x){x.haveHome=!x.haveHome;changed();}return;}
+ if(a==='edit-item'){
+  const x=doc.list.find(x=>x.id===id);if(!x)return;
+  const name=prompt('Varenavn',x.name);if(name===null)return;
+  const qty=prompt('Mengde (tomt = ukjent)',x.quantity==null?'':x.quantity);
+  if(qty===null)return;
+  const unit=prompt('Enhet (g, kg, ml, l, stk eller pk)',x.unit||'');if(unit===null)return;
+  if(!name.trim()){notice('Varen må ha et navn.');return;}
+  const amount=qty.trim()?Number(qty.replace(',','.')):null;
+  if(amount!==null&&(!Number.isFinite(amount)||amount<=0)){notice('Skriv et positivt antall.');return;}
+  x.name=name.trim();x.quantity=amount;x.unit=unit.trim();x.manualOverride=true;changed();return;
+ }
+ if(a==='delete-item'){storeUndo('Varen ble slettet.');doc.list=doc.list.filter(x=>x.id!==id);changed();return;}
+ if(a==='pantry'){tab='pantry';$('main').innerHTML=renderPantry();return;}
+ if(a==='mark-used'){const x=doc.pantry.find(x=>x.id===id);if(x){x.used=!x.used;changed();tab='pantry';$('main').innerHTML=renderPantry();}return;}
+ if(a==='settings'){
+  const n=Number($('profile-people')?.value);
+  if(!Number.isInteger(n)||n<1||n>30){failed(Error('Velg 1–30 personer.'));return;}
+  doc.prefs.people=n;doc.prefs.allergies=$('profile-allergies').value.split(',').map(x=>x.trim()).filter(Boolean).slice(0,30);changed();notice('Innstillingene er lagret.');return;
+ }
+ if(a==='sync'){await sync();return;}
+ if(a==='logout'){await logout();return;}
+ if(a==='export'){download();return;}
+ if(a==='import'){$('import-file').click();return;}
+ if(a==='switch-scope'){await switchScope();return;}
+ if(a==='copy-personal'){await copyPersonal();return;}
+ if(a==='retry-search'){render();await search();return;}
+ if(a==='add-product'){
+  const p=searchResults[Number(btn.dataset.index)];if(!p)return;
+  doc.list.push({id:M.id(),source:'manual',name:p.name,quantity:1,unit:'pk',done:false,haveHome:false,apiProduct:{id:p.id,ean:p.ean,name:p.name}});
+  tab='list';changed();return;
+ }
+});
+function renderPantry(){
+ const held=doc.pantry.filter(x=>!x.used).map(x=>M.normalized(x.name));
+ const matches=presets.map((p,i)=>({...p,index:i})).filter(p=>p.ingredients.some(x=>held.some(word=>word.includes(M.normalized(x.name))||M.normalized(x.name).includes(word))));
+ return '<h1>Har hjemme</h1><p class="help">Frivillig oversikt. En kjøpt vare legges ikke inn automatisk, og middag trekker ikke fra lageret.</p>'+
+ '<form id="pantry-form"><label>Navn<input id="pantry-name" required maxlength="200" placeholder="F.eks. ris"></label>'+
+ '<div class="kv"><label>Mengde (valgfritt)<input id="pantry-quantity" type="number" min="0" step="any"></label>'+
+ '<label>Dato (valgfritt)<input id="pantry-date" type="date"></label></div><button class="primary">Legg til</button></form>'+
+ doc.pantry.map(x=>'<div class="row"><span class="name '+(x.used?'checked':'')+'">'+esc(x.name)+'<small style="display:block">'+esc(x.quantity||'')+' '+esc(x.date||'')+'</small></span>'+
+ button(x.used?'Brukt opp ✓':'Marker brukt opp','mark-used','data-id="'+esc(x.id)+'"')+'</div>').join('')+
+ (matches.length?'<h2>Mulige middager med noe du har</h2><p class="help">Dette er forslag basert på varenavn, ikke en kontroll av tilgjengelige mengder eller allergener.</p><div class="catalog">'+matches.map(x=>button(M.icon(x.title)+' '+esc(x.title),'pantry-preset','data-index="'+x.index+'"')).join('')+'</div>':'')+
+ '<p><button data-tab="home">Tilbake til Hjem</button></p>';
+}
+document.addEventListener('submit',async e=>{
+ if(e.target.id==='meal-form'){
+  e.preventDefault();const title=$('meal-title').value.trim(),portions=Number($('meal-portions').value),date=$('meal-date').value;
+  if(!title||!Number.isInteger(portions)||portions<1||portions>30)return;
+  const ingredients=parseIngredients($('meal-ingredients').value);
+  if(editing){const m=doc.meals.find(x=>x.id===editing);if(m){Object.assign(m,{title,date,portions,basePortions:portions,ingredients});}}
+  else doc.meals.push({id:M.id(),title,date,type:'dinner',portions,basePortions:portions,ingredients,include:true});
+  $('editor').close();commit();return;
+ }
+ if(e.target.id==='add-item'){e.preventDefault();const name=$('new-item').value.trim();if(name){doc.list.push({id:M.id(),name,source:'manual',done:false,haveHome:false});changed();}return;}
+ if(e.target.id==='pantry-form'){e.preventDefault();const name=$('pantry-name').value.trim();if(!name)return;
+  const q=$('pantry-quantity').value,quantity=q===''?null:Number(q);
+  doc.pantry.push({id:M.id(),name,quantity,date:$('pantry-date').value,used:false});changed();$('main').innerHTML=renderPantry();return;
+ }
+ if(e.target.id==='product-search'){e.preventDefault();await search();return;}
+ if(e.target.id==='create-house'||e.target.id==='join-house'){
+  e.preventDefault();
+  try{
+   const create=e.target.id==='create-house';
+   const body=create?{name:$('house-name').value.trim(),size:doc.prefs.people,data:{list:[],fridge:[],meals:[]}}:{code:$('join-code').value.trim()};
+   const response=await request('/api/household/'+(create?'create':'join'),body);
+   home=response.home;renderProfile();notice(create?'Husstand opprettet. Bruk «Vis delt plan» for å dele.':'Du er med i husstanden.');}
+  catch(err){failed(err);}
+ }
+});
+document.addEventListener('change',async e=>{
+ if(e.target.id==='preset-day'){selectedDay=Number(e.target.value)||0;return;}
+ if(e.target.dataset.include){const m=doc.meals.find(x=>x.id===e.target.dataset.include);if(m){m.include=e.target.checked;commit();}}
+ if(e.target.dataset.done){const x=doc.list.find(x=>x.id===e.target.dataset.done);if(x){x.done=e.target.checked;changed();}}
+ if(e.target.id==='import-file'){const f=e.target.files[0];if(!f)return;try{
+  if(f.size>400000)throw Error('Filen er for stor.');
+  const parsed=JSON.parse(await f.text());if(!Array.isArray(parsed.meals)||!Array.isArray(parsed.list)||!Array.isArray(parsed.pantry)||!Array.isArray(parsed.favorites)||!parsed.prefs)throw Error('Ugyldig SAVLY-fil.');
+  if(!confirm('Slå sammen innholdet med dagens data? Eksisterende data beholdes.'))return;
+  doc=M.mergeGuest(doc,parsed);commit();notice('Data importert.');$('profile').close();
+ }catch(err){failed(err);}}
+});
+window.addEventListener('beforeunload',e=>{if(identity&&dirty){e.preventDefault();e.returnValue='';}});
+window.addEventListener('online',()=>{if(identity&&dirty)sync();});
+window.addEventListener('visibilitychange',()=>{if(!document.hidden&&identity&&dirty)sync();});
+boot();
+})();
+</script>
+</body></html>
