@@ -3,6 +3,8 @@ import copy, hashlib, json, os, re, secrets, sqlite3, threading, time, logging
 from pathlib import Path
 
 DB_PATH = os.environ.get('SAVLY_DB', str(Path(__file__).resolve().parent/'savly.sqlite3'))
+# Render's ordinary filesystem is ephemeral. Set SAVLY_DB to a persistent disk path
+# (for example /var/data/savly.sqlite3), or data will disappear on deploy.
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '').strip()
 SESSIONS, ATTEMPTS = {}, {}
 LOCK = threading.RLock()
@@ -23,10 +25,12 @@ def init_db():
     global INITIALIZED
     with INIT_LOCK:
         if INITIALIZED: return
+        Path(DB_PATH).parent.mkdir(parents=True,exist_ok=True)
         with sqlite3.connect(DB_PATH,factory=ClosingConnection) as db:
             db.executescript('''
                 PRAGMA journal_mode=WAL;
                 CREATE TABLE IF NOT EXISTS login_attempts(id TEXT PRIMARY KEY,csrf TEXT NOT NULL,nonce TEXT NOT NULL,expires REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,csrf TEXT NOT NULL,nonce TEXT NOT NULL,expires REAL NOT NULL,user_json TEXT);
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,provider TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS homes(id TEXT PRIMARY KEY,name TEXT NOT NULL,size INTEGER NOT NULL,owner TEXT NOT NULL,code TEXT UNIQUE NOT NULL,expires REAL NOT NULL,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0);
                 CREATE TABLE IF NOT EXISTS accounts(user_id TEXT PRIMARY KEY,data TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,created_at REAL NOT NULL,last_login REAL NOT NULL);
@@ -65,23 +69,38 @@ def session_cookie(cookie_header):
         return ''
     return values[0]
 
+def _session_hash(token):
+    # Never persist bearer tokens in plaintext.
+    return hashlib.sha256(token.encode('ascii')).hexdigest()
+
 def session(cookie_header):
+    """Persist login sessions across workers and deploys (on a durable DB)."""
     token=session_cookie(cookie_header)
-    with LOCK:
-        now=time.time()
-        for old in [k for k,v in SESSIONS.items() if v['expires']<now]:
-            forget_demo(SESSIONS[old].get('user'));del SESSIONS[old]
-        if token not in SESSIONS:
-            token=secrets.token_urlsafe(32)
-            SESSIONS[token]={'csrf':secrets.token_urlsafe(32),'nonce':secrets.token_urlsafe(32),'expires':now+86400,'user':None}
-        return token,SESSIONS[token]
+    now=time.time()
+    with connection() as db:
+        row=db.execute('SELECT * FROM sessions WHERE token_hash=? AND expires>?',(_session_hash(token),now)).fetchone() if token else None
+        if row:
+            # Extend the session on activity; responses refresh cookie lifetime.
+            db.execute('UPDATE sessions SET expires=? WHERE token_hash=?',(now+30*86400,row['token_hash']))
+            return token,{'csrf':row['csrf'],'nonce':row['nonce'],'expires':now+30*86400,
+                          'user':json.loads(row['user_json']) if row['user_json'] else None}
+        new=secrets.token_urlsafe(32)
+        sess={'csrf':secrets.token_urlsafe(32),'nonce':secrets.token_urlsafe(32),'expires':now+30*86400,'user':None}
+        db.execute('DELETE FROM sessions WHERE expires<?',(now,))
+        db.execute('INSERT INTO sessions(token_hash,csrf,nonce,expires,user_json) VALUES(?,?,?,?,NULL)',
+                   (_session_hash(new),sess['csrf'],sess['nonce'],sess['expires']))
+        return new,sess
 
 def rotate(token, user):
-    with LOCK:
-        SESSIONS.pop(token,None)
-        new=secrets.token_urlsafe(32)
-        SESSIONS[new]={'csrf':secrets.token_urlsafe(32),'nonce':secrets.token_urlsafe(32),'expires':time.time()+86400,'user':user}
-        return new,SESSIONS[new]
+    now=time.time()
+    new=secrets.token_urlsafe(32)
+    sess={'csrf':secrets.token_urlsafe(32),'nonce':secrets.token_urlsafe(32),'expires':now+30*86400,'user':user}
+    with connection() as db:
+        db.execute('DELETE FROM sessions WHERE token_hash=?',(_session_hash(token),))
+        db.execute('INSERT INTO sessions(token_hash,csrf,nonce,expires,user_json) VALUES(?,?,?,?,?)',
+                   (_session_hash(new),sess['csrf'],sess['nonce'],sess['expires'],
+                    json.dumps(user) if user else None))
+    return new,sess
 
 def limit(key,maximum,seconds):
     with LOCK:
