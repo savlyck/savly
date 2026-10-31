@@ -1,0 +1,46 @@
+name: SAVLY core tests
+on:
+  push:
+    branches:
+      - 'feature/**'
+  pull_request:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Compile Python
+        run: python -m py_compile server.py households.py core_store.py
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check public/model.js
+          node --check public/app.js
+          node --check public/core.js
+      - name: Test data model
+        run: node --test tests/model.test.cjs
+      - name: Test storage and web endpoints
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Install Chromium test browser
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Start SAVLY locally
+        run: |
+          SAVLY_DB=/tmp/savly-ci.sqlite3 PORT=8787 python server.py >/tmp/savly-ci.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8787/app >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/savly-ci.log
+          exit 1
+      - name: Test browser flows in Chromium
+        run: npx playwright test tests/browser.spec.cjs --reporter=line
