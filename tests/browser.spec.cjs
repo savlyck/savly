@@ -12,12 +12,12 @@ test('New guest -> first dinner -> shared ingredients -> editable shopping list 
  await expect(page.locator('#main .row')).toHaveCount(4);
  await page.getByRole('button',{name:'Oppdater fra ukeplan'}).click();
  await expect(page.locator('#main .row')).toHaveCount(4);
- await page.locator('#main [data-have-home]').first().click();
+ await page.locator('#main [data-action=have-home]').first().click();
  await expect(page.getByText('Hjemme ✓')).toBeVisible();
  await page.reload();
  await page.locator('#tabs [data-tab=list]').click();
  await expect(page.locator('#main .row')).toHaveCount(4);
- await expect(page.locator('#main [data-have-home]').first()).toHaveText('Hjemme ✓');
+ await expect(page.locator('#main [data-action=have-home]').first()).toHaveText('Hjemme ✓');
  await page.locator('#new-item').fill('Såpe');
  await page.locator('#add-item button').click();
  await expect(page.locator('#main .row')).toHaveCount(5);
