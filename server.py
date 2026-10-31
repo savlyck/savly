@@ -2,6 +2,7 @@
 import os, sys, json, time, math, re, getpass, threading, unicodedata, urllib.request, urllib.error
 from urllib.parse import urlsplit, parse_qs, urlencode
 from pathlib import Path
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import households
 
@@ -323,7 +324,7 @@ class Handler(BaseHTTPRequestHandler):
         token=getattr(self,'session_token',None)
         if token:
             secure='; Secure' if os.environ.get('SAVLY_PUBLIC_ORIGIN','').startswith('https://') else ''
-            self.send_header('Set-Cookie','savly_session='+token+'; Path=/; HttpOnly; SameSite=Lax'+secure)
+            self.send_header('Set-Cookie','savly_session='+token+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000'+secure)
         self.end_headers();self.wfile.write(raw)
     def household(self,method,path,body):
         data,token=households.handle(method,path,body,self.headers.get('Cookie'),self.headers.get('X-SAVLY-CSRF'),self.client_address[0])
@@ -347,9 +348,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if part.path in ('/api/session','/api/household','/api/account'):return self.household('GET',part.path,{})
             if part.path.startswith('/api/'):return self.send(200,api(part.path,parse_qs(part.query)))
-            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/account.js':('account.js','text/javascript; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
+            files={'/':('SAVLY.html','text/html; charset=utf-8'),'/SAVLY.html':('SAVLY.html','text/html; charset=utf-8'),'/account.js':('account.js','text/javascript; charset=utf-8'),'/receipt.js':('receipt.js','text/javascript; charset=utf-8'),'/prices.js':('prices.js','text/javascript; charset=utf-8'),'/household.js':('household.js','text/javascript; charset=utf-8'),'/onboarding.css':('onboarding.css','text/css; charset=utf-8'),'/core.js':('core.js','text/javascript; charset=utf-8'),'/savly_wordmark_blue.png':('savly_wordmark_blue.png','image/png')}
             if part.path not in files:return self.send(404,{'error':'Fant ikke siden.'})
-            name,kind=files[part.path];return self.send(200,(ROOT/name).read_bytes(),kind)
+            name,kind=files[part.path]
+            raw=(ROOT/name).read_bytes()
+            if name=='SAVLY.html':
+                # Ship the focused flow alongside the existing app without discarding its data.
+                raw=raw.replace(b'</body>',b'<script src="/core.js" defer></script></body>')
+            return self.send(200,raw,kind)
         except (ApiError,households.HouseholdError) as e:return self.send(e.status,{'error':e.message})
         except Exception:return self.send(502,{'error':'Kunne ikke behandle data.'})
 
