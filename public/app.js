@@ -20,6 +20,7 @@ function legacyItem(x,kind){const label=String((kind==='meals'?x.title:x.name)||
 }
 function migrateGuest(){
  const saved=read(guestKey);if(saved)return saved;
+ if(localStorage.getItem('savly_legacy_migrated_v2')==='yes')return M.empty();
  const base=M.empty();
  // Non-destructive best-effort import; original legacy keys are never removed.
  try{
@@ -100,8 +101,8 @@ async function enterCloud(user,oldAccount){
  dirty=JSON.stringify(merged)!==JSON.stringify(source);changes++;
  localWrite(cacheKey(),doc);
  authenticatedReady=true;
- if(dirty){await sync();if(!dirty){localStorage.removeItem(guestKey);}}
- if(!dirty)localStorage.removeItem(guestKey);
+ if(dirty)await sync();
+ if(!dirty){localStorage.setItem('savly_legacy_migrated_v2','yes');localStorage.removeItem(guestKey);}
  render();
 }
 async function boot(){
@@ -149,6 +150,7 @@ function render(){
  else if(tab==='home')html=renderHome();
  else if(tab==='week')html=renderWeek();
  else if(tab==='list')html=renderList();
+ else if(tab==='pantry')html=renderPantry();
  else html=renderSearch();
  $('main').innerHTML=html;
  renderProfile();
@@ -179,7 +181,7 @@ function renderWeek(){
  return '<h1>Ukeplan</h1><div class="date-nav">'+button('← Forrige','prev-week')+
  '<b>'+esc(d[0])+' til '+esc(d[6])+'</b>'+button('Neste →','next-week')+'</div>'+
  '<div class="actions">'+button('Legg til middag','open-add','','primary')+button('Gjenbruk forrige uke','repeat')+button('Oppdater handleliste','generate')+'</div>'+
- '<h2>Velg en oppskrift</h2><p class="help">Enkle SAVLY-eksempler, ikke kopiert fra oppskriftssider.</p><div class="catalog">'+presets.map((r,i)=>button(M.icon(r.title)+' '+esc(r.title),'preset','data-index="'+i+'"')).join('')+'</div>'+
+ '<h2>Velg en oppskrift</h2><label>Legg oppskriften på dag<select id="preset-day">'+d.map((date,i)=>'<option value="'+i+'" '+(selectedDay===i?'selected':'')+'>'+['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'][i]+'</option>').join('')+'</select></label><p class="help">Enkle SAVLY-eksempler, ikke kopiert fra oppskriftssider.</p><div class="catalog">'+presets.map((r,i)=>button(M.icon(r.title)+' '+esc(r.title),'preset','data-index="'+i+'"')).join('')+'</div>'+
  '<h2>Favoritter</h2>'+(doc.favorites.length?'<div class="catalog">'+doc.favorites.map(x=>button(M.icon(x.title)+' '+safeTitle(x),'use-favorite','data-id="'+esc(x.id)+'"')).join('')+'</div>':'<p class="muted">Ingen favoritter lagret ennå.</p>')+
  d.map((date,i)=>'<section class="day"><div class="day-title"><h2>'+['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'][i]+'</h2>'+
  button('Legg til','open-add','data-date="'+date+'"')+'</div>'+
@@ -405,6 +407,7 @@ document.addEventListener('submit',async e=>{
  }
 });
 document.addEventListener('change',async e=>{
+ if(e.target.id==='preset-day'){selectedDay=Number(e.target.value)||0;return;}
  if(e.target.dataset.include){const m=doc.meals.find(x=>x.id===e.target.dataset.include);if(m){m.include=e.target.checked;commit();}}
  if(e.target.dataset.done){const x=doc.list.find(x=>x.id===e.target.dataset.done);if(x){x.done=e.target.checked;changed();}}
  if(e.target.id==='import-file'){const f=e.target.files[0];if(!f)return;try{
